@@ -36,7 +36,7 @@ const legalLinks = [
 
 export function Footer() {
   return (
-    <footer id="about" className="bg-[#0a1128]">
+    <footer className="bg-[#0a1128]">
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-6">

@@ -7,6 +7,7 @@ import { TrustBadges } from "@/components/landing/TrustBadges";
 import { StatsBar } from "@/components/landing/StatsBar";
 import { Footer } from "@/components/landing/Footer";
 import { Features } from "@/components/landing/Features";
+import { AboutUs } from "@/components/landing/AboutUs";
 
 export default function Home() {
   return (
@@ -19,6 +20,7 @@ export default function Home() {
         <BottomCards />
         <TrustBadges />
         <Features />
+        <AboutUs />
         <StatsBar />
       </main>
       <Footer />
