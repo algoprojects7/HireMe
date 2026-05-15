@@ -72,26 +72,62 @@ export class UsersService {
   async findPublicProfile(id: string) {
     const user = await this.db.client.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        role: true,
-        kycStatus: true,
-        createdAt: true,
-        kycRequest: {
-          select: {
-            photoUrl: true,
+      include: {
+        worker: {
+          include: {
+            reviews: {
+              where: { isFlagged: false, role: 'PROVIDER_TO_WORKER' },
+              include: { customer: { include: { user: { select: { name: true } } } } },
+              orderBy: { createdAt: 'desc' },
+              take: 5
+            }
           }
+        },
+        customer: {
+          include: {
+            reviews: {
+              where: { isFlagged: false, role: 'WORKER_TO_PROVIDER' },
+              include: { worker: { include: { user: { select: { name: true } } } } },
+              orderBy: { createdAt: 'desc' },
+              take: 5
+            }
+          }
+        },
+        kycRequest: {
+          select: { photoUrl: true }
         }
       }
     });
 
     if (!user) return null;
 
-    const { kycRequest, ...rest } = user;
+    const reviews = user.role === 'WORKER' ? user.worker?.reviews : user.customer?.reviews;
+    const ratingStats = await this.db.client.review.aggregate({
+      where: {
+        ...(user.role === 'WORKER' ? { workerId: user.worker?.id } : { customerId: user.customer?.id }),
+        role: user.role === 'WORKER' ? 'PROVIDER_TO_WORKER' : 'WORKER_TO_PROVIDER',
+        isFlagged: false
+      },
+      _avg: { rating: true },
+      _count: { rating: true }
+    });
+
     return {
-      ...rest,
-      photoUrl: kycRequest?.photoUrl || null,
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      kycStatus: user.kycStatus,
+      createdAt: user.createdAt,
+      photoUrl: user.kycRequest?.photoUrl || null,
+      averageRating: ratingStats._avg.rating || 0,
+      reviewCount: ratingStats._count.rating || 0,
+      recentReviews: reviews?.map(r => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+        reviewer: (r as any).customer?.user?.name || (r as any).worker?.user?.name
+      })) || []
     };
   }
 

@@ -56,6 +56,7 @@ model Tenant {
   customers   Customer[]
   bookings    Booking[]
   platformFees PlatformFee[]
+  reviews     Review[]
 }
 
 model User {
@@ -199,6 +200,7 @@ model Booking {
   history         BookingHistory[]
   payment         Payment?
   dispute         Dispute?
+  reviews         Review[]
 }
 
 model BookingHistory {
@@ -276,15 +278,26 @@ model PlatformFee {
 
 model Review {
   id          String   @id @default(cuid())
-  bookingId   String   @unique
+  bookingId   String
   workerId    String
   customerId  String
+  tenantId    String
   rating      Int
   comment     String?
+  role        String   @default("PROVIDER_TO_WORKER") // PROVIDER_TO_WORKER, WORKER_TO_PROVIDER
+  isFlagged   Boolean  @default(false)
+  adminNote   String?
   
   worker      Worker   @relation("WorkerReviews", fields: [workerId], references: [id])
   customer    Customer @relation("CustomerReviews", fields: [customerId], references: [id])
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   createdAt   DateTime @default(now())
+
+  @@unique([bookingId, role])
+  @@index([workerId])
+  @@index([customerId])
+  @@index([tenantId])
 }
 
 model Notification {

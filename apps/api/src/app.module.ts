@@ -14,6 +14,7 @@ import { RedisModule } from './redis/redis.module';
 import { KycModule } from './kyc/kyc.module';
 import { SupportModule } from './support/support.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     KycModule,
     SupportModule,
     AnalyticsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

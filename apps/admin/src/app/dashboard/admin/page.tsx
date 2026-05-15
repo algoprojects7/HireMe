@@ -74,7 +74,8 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 gap-3">
               <QuickLink href="/dashboard/kyc" icon={ShieldCheck} label="Approve Pending KYCs" count="128" color="text-amber-400" />
               <QuickLink href="/dashboard/qr-codes" icon={QrCode} label="Generate New QR Codes" color="text-blue-400" />
-              <QuickLink href="/dashboard/operators" icon={UserPlus} label="Manage Operators" count="5" color="text-purple-400" />
+               <QuickLink href="/dashboard/operators" icon={UserPlus} label="Manage Operators" count="5" color="text-purple-400" />
+              <QuickLink href="/dashboard/admin/reviews" icon={Star} label="Review Moderation" color="text-amber-400" />
               <QuickLink href="/dashboard/penalties" icon={AlertTriangle} label="Handle Penalties" color="text-red-400" />
             </div>
           </div>

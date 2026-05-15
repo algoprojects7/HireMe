@@ -12,9 +12,26 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Button } from '@repo/ui';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function WorkerDashboard() {
   const [isAvailable, setIsAvailable] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+      try {
+        const response = await api.get(`/reviews/stats/${user.userId}?type=WORKER`);
+        setStats(response.data);
+      } catch (err) {
+        console.error('Failed to fetch stats', err);
+      }
+    };
+    fetchStats();
+  }, [user]);
 
   return (
     <div className="space-y-8">
@@ -54,12 +71,12 @@ export default function WorkerDashboard() {
         />
         <StatCard 
           title="Jobs Completed" 
-          value="48" 
+          value={stats?.count?.toString() || "0"} 
           icon={<CheckCircle2 className="text-blue-400" />} 
         />
         <StatCard 
           title="User Rating" 
-          value="4.8" 
+          value={stats?.average?.toFixed(1) || "0.0"} 
           icon={<Star className="text-amber-400" />} 
         />
         <StatCard 

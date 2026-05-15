@@ -11,8 +11,27 @@ import {
   Plus
 } from 'lucide-react';
 import { Button } from '@repo/ui';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useEffect, useState } from 'react';
 
 export default function ProviderDashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+      try {
+        const response = await api.get(`/reviews/stats/${user.userId}?type=CUSTOMER`);
+        setStats(response.data);
+      } catch (err) {
+        console.error('Failed to fetch stats', err);
+      }
+    };
+    fetchStats();
+  }, [user]);
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -39,9 +58,9 @@ export default function ProviderDashboard() {
           icon={<Clock className="text-blue-400" />} 
         />
         <StatCard 
-          title="Total Workers Hired" 
-          value="12" 
-          icon={<Users className="text-purple-400" />} 
+          title="User Rating" 
+          value={stats?.average?.toFixed(1) || "0.0"} 
+          icon={<Search className="text-amber-400" />} 
         />
         <StatCard 
           title="KYC Status" 

@@ -87,11 +87,11 @@ export default function PublicProfilePage() {
             <p className="text-blue-400 font-medium mb-6 uppercase tracking-widest text-xs">{profile.role}</p>
 
             <div className="flex items-center gap-6 mb-8">
-              <StatItem label="Rating" value="4.9" icon={<Star size={14} className="text-amber-400 fill-amber-400" />} />
+              <StatItem label="Rating" value={profile.averageRating?.toFixed(1) || "0.0"} icon={<Star size={14} className="text-amber-400 fill-amber-400" />} />
               <div className="w-px h-8 bg-white/10" />
               <StatItem label="Experience" value="3+ Years" icon={<Briefcase size={14} className="text-blue-400" />} />
               <div className="w-px h-8 bg-white/10" />
-              <StatItem label="Jobs" value="142" icon={<CheckCircle2 size={14} className="text-emerald-400" />} />
+              <StatItem label="Reviews" value={profile.reviewCount?.toString() || "0"} icon={<CheckCircle2 size={14} className="text-emerald-400" />} />
             </div>
 
             <div className="w-full space-y-4 text-left">
@@ -108,6 +108,35 @@ export default function PublicProfilePage() {
                   <InfoRow icon={<Calendar size={16} />} label="Joined" value={new Date(profile.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })} />
                </div>
             </div>
+
+            {/* Recent Reviews Section */}
+            {profile.recentReviews?.length > 0 && (
+              <div className="w-full mt-10 text-left">
+                <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-widest flex items-center gap-2">
+                  <Star size={16} className="text-amber-400" /> Recent Feedback
+                </h3>
+                <div className="space-y-4">
+                  {profile.recentReviews.map((review: any) => (
+                    <div key={review.id} className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              size={12} 
+                              className={i < review.rating ? "text-amber-400 fill-amber-400" : "text-gray-600"} 
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-gray-500 font-bold">{new Date(review.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-2 italic">"{review.comment}"</p>
+                      <p className="text-[10px] text-gray-500 font-bold">— {review.reviewer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button className="w-full mt-10 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">
               Book This {profile.role}

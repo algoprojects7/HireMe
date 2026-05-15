@@ -32,7 +32,7 @@ export class WorkersService {
   }
 
   async findAll(tenantId: string) {
-    return this.db.client.worker.findMany({
+    const workers = await this.db.client.worker.findMany({
       where: { tenantId },
       include: {
         user: {
@@ -47,8 +47,20 @@ export class WorkersService {
             skill: true,
           },
         },
+        reviews: {
+          where: { isFlagged: false, role: 'PROVIDER_TO_WORKER' },
+          select: { rating: true }
+        }
       },
     });
+
+    return workers.map(w => ({
+      ...w,
+      rating: w.reviews.length > 0 
+        ? w.reviews.reduce((acc, r) => acc + r.rating, 0) / w.reviews.length 
+        : 0,
+      reviewCount: w.reviews.length
+    }));
   }
 
   async findOne(id: string) {
@@ -61,6 +73,13 @@ export class WorkersService {
             skill: true,
           },
         },
+        reviews: {
+          where: { isFlagged: false, role: 'PROVIDER_TO_WORKER' },
+          include: {
+            customer: { include: { user: { select: { name: true } } } }
+          },
+          orderBy: { createdAt: 'desc' }
+        }
       },
     });
 
@@ -68,7 +87,11 @@ export class WorkersService {
       throw new NotFoundException(`Worker with ID ${id} not found`);
     }
 
-    return worker;
+    const rating = worker.reviews.length > 0 
+      ? worker.reviews.reduce((acc, r) => acc + r.rating, 0) / worker.reviews.length 
+      : 0;
+
+    return { ...worker, averageRating: rating, reviewCount: worker.reviews.length };
   }
 
   async updateAvailability(id: string, isAvailable: boolean, lat?: number, lng?: number) {
@@ -161,7 +184,7 @@ export class WorkersService {
   }
 
   async search(query: { skillId?: string; area?: string }) {
-    return this.db.client.worker.findMany({
+    const workers = await this.db.client.worker.findMany({
       where: {
         isVerified: true,
         isAvailable: true,
@@ -186,9 +209,21 @@ export class WorkersService {
         },
         members: {
           select: { id: true }
+        },
+        reviews: {
+          where: { isFlagged: false, role: 'PROVIDER_TO_WORKER' },
+          select: { rating: true }
         }
       },
     });
+
+    return workers.map(w => ({
+      ...w,
+      rating: w.reviews.length > 0 
+        ? w.reviews.reduce((acc, r) => acc + r.rating, 0) / w.reviews.length 
+        : 0,
+      reviewCount: w.reviews.length
+    }));
   }
 
   async listSkills() {
