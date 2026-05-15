@@ -1,18 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { Search as SearchIcon, MapPin, Briefcase, ChevronLeft, Zap, Layers, Navigation } from 'lucide-react';
+import { MapView } from '@repo/ui';
 import api from '@/lib/api';
-import { Search as SearchIcon, Filter, MapPin, Star, ShieldCheck, ArrowRight, Briefcase, Zap } from 'lucide-react';
-import { Navbar } from '@/components/landing/Navbar';
-import { Footer } from '@/components/landing/Footer';
+import { GUWAHATI_AREAS, findLocation } from '@/lib/location';
+import WorkerSideSheet from '@/components/search/WorkerSideSheet';
+import Link from 'next/link';
 
-export default function PublicSearchPage() {
+export default function MapSearchPage() {
   const [workers, setWorkers] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSkill, setSelectedSkill] = useState<string>('');
+  
+  // Search States
+  const [locationQuery, setLocationQuery] = useState('');
+  const [selectedSkill, setSelectedSkill] = useState('');
+  const [mapCenter, setMapCenter] = useState({ lat: 26.1445, lng: 91.7362 });
+  const [selectedWorker, setSelectedWorker] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,145 +37,117 @@ export default function PublicSearchPage() {
     fetchData();
   }, []);
 
+  const handleSearch = () => {
+    if (locationQuery) {
+      const area = findLocation(locationQuery);
+      if (area) {
+        setMapCenter({ lat: area.lat, lng: area.lng });
+      }
+    }
+  };
+
   const filteredWorkers = workers.filter(worker => {
-    const matchesSearch = worker.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         worker.skills.some((s: any) => s.skill.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSkill = selectedSkill ? worker.skills.some((s: any) => s.skillId === selectedSkill) : true;
-    return matchesSearch && matchesSkill;
+    if (selectedSkill && !worker.skills.some((s: any) => s.skillId === selectedSkill)) {
+      return false;
+    }
+    return true;
   });
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-blue-500/30">
-      <Navbar />
-      
-      <main className="pt-24 pb-20">
-        {/* Hero Search Section */}
-        <div className="relative py-16 px-4 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none" />
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <h1 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">
-              Find the Perfect <span className="text-[#f5c518]">Worker</span>
-            </h1>
-            <p className="text-gray-400 text-lg mb-10 max-w-2xl mx-auto">
-              Browse thousands of verified professionals near you. Real ratings, secure payments, and AI-powered matching.
-            </p>
+    <div className="h-screen w-screen bg-[#050505] overflow-hidden flex flex-col font-poppins">
+      {/* Header / Search Bar */}
+      <header className="absolute top-0 left-0 right-0 z-50 p-6 pointer-events-none">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 pointer-events-auto">
+          {/* Logo / Back */}
+          <Link href="/" className="h-14 w-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-all shrink-0">
+             <ChevronLeft size={24} />
+          </Link>
 
-            <div className="flex flex-col md:flex-row gap-4 p-2 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl">
-              <div className="flex-1 relative">
-                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-                <input 
-                  type="text" 
-                  placeholder="Search by name or service (e.g. Plumber, Electrician)..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent pl-12 pr-4 py-4 focus:outline-none text-white placeholder:text-gray-600"
-                />
-              </div>
-              <div className="w-px bg-white/10 hidden md:block" />
+          {/* Dual Input Search Container */}
+          <div className="flex-1 flex flex-col md:flex-row gap-2 p-2 bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl shadow-black/50">
+            {/* Location Input */}
+            <div className="flex-1 relative">
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-red-500" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search area (e.g. Jalukbari)..." 
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full bg-transparent pl-12 pr-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none"
+              />
+            </div>
+            
+            <div className="w-px bg-white/10 hidden md:block" />
+
+            {/* Skills Dropdown */}
+            <div className="flex-1 relative">
+              <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={18} />
               <select 
                 value={selectedSkill}
                 onChange={(e) => setSelectedSkill(e.target.value)}
-                className="bg-transparent px-6 py-4 focus:outline-none text-gray-300 border-none cursor-pointer"
+                className="w-full bg-transparent pl-12 pr-8 py-3 text-sm text-white focus:outline-none appearance-none cursor-pointer"
               >
                 <option value="" className="bg-[#0a0a0a]">All Skills</option>
                 {skills.map(skill => (
                   <option key={skill.id} value={skill.id} className="bg-[#0a0a0a]">{skill.name}</option>
                 ))}
               </select>
-              <button className="bg-[#f5c518] text-[#0a1128] px-8 py-4 rounded-2xl font-bold hover:bg-[#e6b800] transition-all flex items-center justify-center gap-2">
-                <Zap size={18} />
-                Search
-              </button>
             </div>
+
+            <button 
+              onClick={handleSearch}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+            >
+              <Zap size={16} />
+              Search
+            </button>
           </div>
         </div>
+      </header>
 
-        {/* Results Section */}
-        <div className="max-w-7xl mx-auto px-4 mt-8">
-          <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Briefcase size={20} className="text-blue-400" />
-              {loading ? 'Searching...' : `${filteredWorkers.length} Workers Available`}
-            </h2>
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span>Sort by:</span>
-              <select className="bg-transparent text-white font-bold focus:outline-none border-none cursor-pointer">
-                <option value="rating" className="bg-[#0a0a0a]">Top Rated</option>
-                <option value="proximity" className="bg-[#0a0a0a]">Nearest</option>
-              </select>
-            </div>
+      {/* Main Map View */}
+      <main className="flex-1 relative">
+        <MapView 
+          workers={filteredWorkers} 
+          center={mapCenter} 
+          onWorkerClick={(w) => setSelectedWorker(w)} 
+        />
+        
+        {/* Floating Quick Stats */}
+        <div className="absolute top-32 right-6 flex flex-col gap-3">
+          <div className="bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-4 rounded-3xl shadow-xl">
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Nearby Professionals</p>
+             <p className="text-2xl font-black text-white">{filteredWorkers.length}</p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-              [...Array(6)].map((_, i) => (
-                <div key={i} className="h-[400px] bg-white/5 rounded-3xl border border-white/5 animate-pulse" />
-              ))
-            ) : filteredWorkers.length === 0 ? (
-              <div className="col-span-full py-20 text-center">
-                <p className="text-gray-500 text-lg">No workers found matching your criteria.</p>
-                <button onClick={() => {setSearchQuery(''); setSelectedSkill('');}} className="mt-4 text-blue-400 hover:underline font-bold">Clear all filters</button>
-              </div>
-            ) : (
-              filteredWorkers.map((worker) => (
-                <div key={worker.id} className="group bg-[#0a0a0a] border border-white/10 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:shadow-2xl hover:shadow-blue-500/5 flex flex-col h-full relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-emerald-500/10 text-emerald-400 p-2 rounded-full">
-                      <ShieldCheck size={20} />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5 overflow-hidden flex items-center justify-center text-2xl font-bold text-gray-600">
-                      {worker.user.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{worker.user.name}</h3>
-                      <div className="flex items-center gap-1.5 text-[#f5c518] text-sm font-bold">
-                        <Star size={14} className="fill-current" />
-                        {worker.rating?.toFixed(1) || "0.0"} 
-                        <span className="text-gray-500 font-medium ml-1">({worker.reviewCount || 0} reviews)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {worker.skills.map((s: any) => (
-                      <span key={s.skillId} className="px-3 py-1 bg-white/5 border border-white/5 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:border-blue-500/20 group-hover:text-blue-300 transition-all">
-                        {s.skill.name}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-auto space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1.5 text-gray-500">
-                        <MapPin size={14} /> New Delhi, India
-                      </div>
-                      <div className="text-emerald-400 font-bold">Available Now</div>
-                    </div>
-
-                    <Link href={`/p/${worker.userId}`} className="w-full">
-                      <button className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
-                        View Profile
-                        <ArrowRight size={16} />
-                      </button>
-                    </Link>
-                    
-                    <Link href="/auth/register?type=customer" className="w-full block">
-                      <button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">
-                        Book Now
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-              ))
-            )}
+          <div className="bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-4 rounded-3xl shadow-xl">
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Current Area</p>
+             <p className="text-sm font-bold text-blue-400 flex items-center gap-1">
+               <Navigation size={12} className="fill-current" />
+               {findLocation(locationQuery)?.name || "Guwahati Metro"}
+             </p>
           </div>
         </div>
       </main>
 
-      <Footer />
+      {/* Side Sheet */}
+      {selectedWorker && (
+        <WorkerSideSheet 
+          worker={selectedWorker} 
+          onClose={() => setSelectedWorker(null)} 
+        />
+      )}
+
+      {/* Legend / Overlay */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-[#0a0a0a]/60 backdrop-blur-md border border-white/5 rounded-full z-40 pointer-events-none">
+        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+           <div className="w-2 h-2 rounded-full bg-blue-500" /> Individual
+        </div>
+        <div className="w-px h-3 bg-white/10" />
+        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+           <div className="w-2 h-2 rounded-full bg-purple-500" /> Group Leader
+        </div>
+      </div>
     </div>
   );
 }

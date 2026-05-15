@@ -153,6 +153,12 @@ export const navigationItems: NavItem[] = [
     icon: Star,
     roles: [UserRole.WORKER],
   },
+  {
+    label: 'Wallet Withdraw',
+    href: '/dashboard/worker/withdraw',
+    icon: Wallet,
+    roles: [UserRole.WORKER],
+  },
   
   // Shared Account
   {

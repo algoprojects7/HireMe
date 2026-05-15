@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Search, Calendar, MapPin, Clock } from 'lucide-react';
+import { initiatePayment } from '@/lib/razorpay';
+import { ShieldCheck, CheckCircle2, MessageCircle, CreditCard } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import ReviewModal from '@/components/ReviewModal';
 
@@ -27,6 +29,16 @@ export default function BookingsPage() {
     fetchBookings();
   }, []);
 
+  const handleFeedback = async (bookingId: string, feedback: boolean) => {
+    try {
+      await api.post(`/bookings/${bookingId}/feedback`, { feedback });
+      fetchBookings();
+      alert('Feedback submitted. Funds will be released once both parties agree.');
+    } catch (err) {
+      console.error('Failed to submit feedback', err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -43,34 +55,42 @@ export default function BookingsPage() {
           </div>
         ) : (
           bookings.map((booking: any) => {
-            // Check if user is worker or provider for this booking
             const isWorker = booking.worker?.userId === user?.userId;
             const isProvider = booking.customer?.userId === user?.userId;
             const canReview = booking.status === 'COMPLETED' && (isWorker || isProvider);
+            const needsPayment = isProvider && booking.paymentStatus === 'UNPAID';
+            const canGiveFeedback = booking.status === 'IN_PROGRESS' || booking.status === 'CONFIRMED';
+            
+            const myFeedback = isWorker ? booking.workerFeedback : booking.providerFeedback;
+            const otherFeedback = isWorker ? booking.providerFeedback : booking.workerFeedback;
 
             return (
-              <div key={booking.id} className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-white/20 transition-all flex items-center justify-between">
+              <div key={booking.id} className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-white/20 transition-all flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center space-x-6">
                   <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
                     <Calendar size={24} />
                   </div>
                   <div>
                     <h3 className="text-white font-semibold">Booking #{booking.id.slice(-6).toUpperCase()}</h3>
-                    <div className="flex items-center space-x-4 mt-1">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                       <span className="flex items-center text-xs text-gray-400">
-                        <Users size={12} className="mr-1" />
                         {booking.customer?.user?.name} → {booking.worker?.user?.name}
                       </span>
                       <span className="flex items-center text-xs text-gray-400">
                         <Clock size={12} className="mr-1" />
                         {new Date(booking.startTime).toLocaleDateString()}
                       </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        booking.paymentStatus === 'PAID_FULL' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {booking.paymentStatus}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-right mr-4">
                     <p className="text-lg font-bold text-white">₹{booking.amount}</p>
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
                       booking.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400' :
@@ -81,14 +101,43 @@ export default function BookingsPage() {
                     </span>
                   </div>
                   
-                  {canReview && (
-                    <button 
-                      onClick={() => setReviewingBooking(booking)}
-                      className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 px-4 py-2 rounded-xl text-xs font-bold transition-all"
-                    >
-                      Rate Now
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {needsPayment && (
+                      <button 
+                        onClick={() => initiatePayment(booking.amount, booking.id, fetchBookings)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                      >
+                        <CreditCard size={14} />
+                        Pay Now
+                      </button>
+                    )}
+
+                    {canGiveFeedback && !myFeedback && (
+                      <button 
+                        onClick={() => handleFeedback(booking.id, true)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                      >
+                        <CheckCircle2 size={14} />
+                        No Issues
+                      </button>
+                    )}
+
+                    {myFeedback && !otherFeedback && (
+                      <div className="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold flex items-center gap-2">
+                        <ShieldCheck size={14} />
+                        Waiting for Other Party
+                      </div>
+                    )}
+
+                    {canReview && (
+                      <button 
+                        onClick={() => setReviewingBooking(booking)}
+                        className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                      >
+                        Rate Now
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
