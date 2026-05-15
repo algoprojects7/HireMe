@@ -109,11 +109,11 @@ export default function DashboardLayout({
             </button>
             <div className="flex items-center space-x-3 pl-4 border-l border-white/10">
               <div className="text-right">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className={`text-[10px] font-bold uppercase tracking-wider ${badge.text}`}>{user.role}</p>
+                <p className="text-sm font-medium">{user?.name || 'User'}</p>
+                <p className={`text-[10px] font-bold uppercase tracking-wider ${badge.text}`}>{user?.role}</p>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center font-bold text-sm">
-                {user.name.charAt(0)}
+                {(user?.name || 'U').charAt(0)}
               </div>
             </div>
           </div>
