@@ -1,0 +1,284 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Add this section
+// prisma {
+//   seed = "node seed.js"
+// }
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  PROVIDER
+  WORKER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  domain      String?  @unique
+  settings    Json?    // Branding, regional config, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  users       User[]
+  workers     Worker[]
+  customers   Customer[]
+  bookings    Booking[]
+  platformFees PlatformFee[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  phone         String?   @unique
+  password      String
+  name          String
+  gender        String?
+  role          UserRole  @default(WORKER)
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  worker        Worker?
+  customer      Customer?
+  wallet        Wallet?
+  notifications Notification[]
+  sessions      Session[]
+  adminLogs     AdminLog[]
+}
+
+model Worker {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  
+  aadhaarNumber   String?  @unique
+  photoUrl        String?
+  isVerified      Boolean  @default(false)
+  isAvailable     Boolean  @default(false)
+  currentLat      Float?
+  currentLng      Float?
+  
+  skills          WorkerSkill[]
+  availability    Availability[]
+  bookings        Booking[]
+  reviews         Review[] @relation("WorkerReviews")
+  payouts         Payout[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  bookings  Booking[]
+  reviews   Review[] @relation("CustomerReviews")
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  workers     WorkerSkill[]
+}
+
+model WorkerSkill {
+  id        String @id @default(cuid())
+  workerId  String
+  skillId   String
+  level     Int    @default(1) // 1 to 5
+  
+  worker    Worker @relation(fields: [workerId], references: [id])
+  skill     Skill  @relation(fields: [skillId], references: [id])
+
+  @@unique([workerId, skillId])
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  workerId  String
+  dayOfWeek Int      // 0-6
+  startTime String   // "08:00"
+  endTime   String   // "17:00"
+  
+  worker    Worker @relation(fields: [workerId], references: [id])
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
+  workerId        String
+  worker          Worker        @relation(fields: [workerId], references: [id])
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  
+  status          BookingStatus @default(PENDING)
+  amount          Float
+  platformFee     Float
+  workerEarning   Float
+  
+  startTime       DateTime
+  endTime         DateTime?
+  location        String?
+  lat             Float?
+  lng             Float?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  history         BookingHistory[]
+  payment         Payment?
+  dispute         Dispute?
+}
+
+model BookingHistory {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id])
+  status    BookingStatus
+  comment   String?
+  createdAt DateTime      @default(now())
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Float    @default(0)
+  currency  String   @default("INR")
+  
+  ledger    WalletLedger[]
+}
+
+model WalletLedger {
+  id          String          @id @default(cuid())
+  walletId    String
+  wallet      Wallet          @relation(fields: [walletId], references: [id])
+  type        TransactionType
+  amount      Float
+  description String
+  metadata    Json?           // Reference to booking, payout, etc.
+  createdAt   DateTime        @default(now())
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  bookingId       String   @unique
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  externalId      String?  // Razorpay order id
+  status          String
+  amount          Float
+  provider        String   @default("RAZORPAY")
+  createdAt       DateTime @default(now())
+}
+
+model Payout {
+  id          String   @id @default(cuid())
+  workerId    String
+  worker      Worker   @relation(fields: [workerId], references: [id])
+  amount      Float
+  status      String   @default("PENDING")
+  externalId  String?  // Payout reference
+  createdAt   DateTime @default(now())
+}
+
+model PlatformFee {
+  id          String @id @default(cuid())
+  tenantId    String
+  tenant      Tenant @relation(fields: [tenantId], references: [id])
+  percentage  Float  @default(5.0)
+  fixedFee    Float  @default(0.0)
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  workerId    String
+  customerId  String
+  rating      Int
+  comment     String?
+  
+  worker      Worker   @relation("WorkerReviews", fields: [workerId], references: [id])
+  customer    Customer @relation("CustomerReviews", fields: [customerId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String?
+  createdAt DateTime @default(now())
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  resource  String
+  details   Json?
+  createdAt DateTime @default(now())
+}
+
+model Dispute {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  reason    String
+  status    String   @default("OPEN") // OPEN, RESOLVED, REJECTED
+  createdAt DateTime @default(now())
+}

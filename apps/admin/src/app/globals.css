@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@source "../../packages/ui/src";
+
+:root {
+  --ks-navy: #0a1128;
+  --ks-navy-light: #111d3e;
+  --ks-navy-mid: #162350;
+  --ks-yellow: #f5c518;
+  --ks-yellow-hover: #e6b800;
+  --ks-orange: #e8511a;
+  --ks-orange-light: #ff6b35;
+  --ks-green: #22c55e;
+  --ks-teal: #14b8a6;
+  --ks-blue: #3b82f6;
+  --ks-purple: #a855f7;
+  --ks-red: #ef4444;
+  --ks-white: #ffffff;
+  --ks-gray-50: #f9fafb;
+  --ks-gray-100: #f3f4f6;
+  --ks-gray-200: #e5e7eb;
+  --ks-gray-300: #d1d5db;
+  --ks-gray-400: #9ca3af;
+  --ks-gray-500: #6b7280;
+  --ks-gray-600: #4b5563;
+  --ks-gray-700: #374151;
+  --ks-gray-800: #1f2937;
+  --ks-gray-900: #111827;
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Poppins', sans-serif;
+  --font-mono: var(--font-geist-mono);
+  --color-ks-navy: var(--ks-navy);
+  --color-ks-navy-light: var(--ks-navy-light);
+  --color-ks-navy-mid: var(--ks-navy-mid);
+  --color-ks-yellow: var(--ks-yellow);
+  --color-ks-yellow-hover: var(--ks-yellow-hover);
+  --color-ks-orange: var(--ks-orange);
+  --color-ks-orange-light: var(--ks-orange-light);
+  --color-ks-green: var(--ks-green);
+  --color-ks-teal: var(--ks-teal);
+  --color-ks-blue: var(--ks-blue);
+  --color-ks-purple: var(--ks-purple);
+  --color-ks-red: var(--ks-red);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ks-hero-gradient {
+  background: linear-gradient(135deg, #0a1128 0%, #111d3e 40%, #162350 70%, #0d1a3a 100%);
+}
+
+.ks-hero-overlay {
+  background: radial-gradient(ellipse at 30% 50%, rgba(59,130,246,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 30%, rgba(245,197,24,0.05) 0%, transparent 50%);
+}
+
+.ks-card {
+  background: var(--ks-white);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ks-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 16px 40px rgba(0,0,0,0.06);
+}
+
+.ks-feature-card {
+  background: var(--ks-white);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.ks-feature-card:hover {
+  border-color: var(--ks-yellow);
+  box-shadow: 0 8px 30px rgba(245,197,24,0.12);
+  transform: translateY(-4px);
+}
+
+.ks-icon-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.ks-orange-gradient {
+  background: linear-gradient(135deg, #e8511a 0%, #ff6b35 100%);
+}
+
+.ks-stats-bar {
+  background: linear-gradient(90deg, #0a1128 0%, #111d3e 50%, #0a1128 100%);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}

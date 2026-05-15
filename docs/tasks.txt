@@ -1,0 +1,55 @@
+1) QR Code Generation of PlayStore/AppStore/Web Application URL and to be distributed, and to be pasted on the busy area or market areas where  the unorganized worker will be present.
+2) KYC update info at the dashboard of user and get approved by the admin.
+3) Once approved admin can see the details of the worker and the QR Code can be generated and distributed.
+4) Login using QR Code or Mobile Number and Password. 
+5) Admin also have the provision to update KYC of the worker, and also to generate the QR Code. Update profile pic, Adhaar, PAN , and other details as required. 
+6) Users (Provider/Worker) have the provision to update Profile dashboard and KYC info. 
+
+Admin Menu                                 
+============
+Dashboard  
+Wallet Balance 
+Users -----(Provider/Worker)
+Operator
+KYC
+QR Code
+Booking Details
+Fine & Penalty Details
+Technical Issues Report
+Analysis Reports
+Change Password
+Logout
+
+
+Provider Menu                                 
+=============                                   
+Dashboard   
+Profile
+Wallet
+Booking Details
+KYC
+QR Code
+Change Password
+Support Ticket
+Settings
+Logout
+
+Worker Menu                                   
+============
+Dashboard   
+Wallet
+Booking Details
+Search Works
+Profile
+KYC
+QR Code
+Change Password
+Support Ticket
+Settings
+Logout
+
+
+
+===================================================================
+
+=================================================================== 
