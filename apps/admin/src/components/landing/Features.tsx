@@ -41,10 +41,10 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="py-24 bg-[#050505] relative">
+    <section id="for-customers" className="py-24 bg-[#050505] relative">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-20">
-          <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">Built for Modern Operations</h2>
+          <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">Built for Customers & Agencies</h2>
           <p className="text-gray-500 max-w-2xl mx-auto text-lg">
             Everything you need to manage an unorganized workforce at scale, with enterprise-grade security and AI.
           </p>
