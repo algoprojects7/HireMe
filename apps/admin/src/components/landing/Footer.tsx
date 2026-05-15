@@ -19,10 +19,10 @@ const workerLinks = [
 ];
 
 const customerLinks = [
-  { label: "Hire Workers", href: "#" },
+  { label: "Hire Workers", href: "/search" },
   { label: "How It Works", href: "#" },
   { label: "Pricing", href: "#" },
-  { label: "Post a Job", href: "#" },
+  { label: "Post a Job", href: "/search" },
   { label: "Help Center", href: "#" },
 ];
 

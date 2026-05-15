@@ -208,7 +208,6 @@ export function Hero() {
                     ? "bg-[#f5c518] text-[#0a1128] hover:bg-[#e6b800] shadow-lg shadow-yellow-500/20"
                     : "bg-transparent text-white border border-white/20 hover:bg-white/5"
                 }`}
-                onClick={() => setActiveMode('customer')}
               >
                 Hire a Worker
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
