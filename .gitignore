@@ -10,3 +10,5 @@ build/
 .DS_Store
 coverage/
 *.log
+
+docs/system_documentation_report.md
