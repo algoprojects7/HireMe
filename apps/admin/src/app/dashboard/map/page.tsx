@@ -1,8 +1,9 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { MapView } from '@repo/ui/map-view';
-import { Search, MapPin, Navigation, Filter, User, Briefcase, PhoneOff, MessageSquare, Phone, Users, LogIn } from 'lucide-react';
+import { Search, MapPin, Navigation, Filter, Briefcase, PhoneOff, MessageSquare, Phone, Users, LogIn, Zap, Star, Target } from 'lucide-react';
 import { Button } from '@repo/ui';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -30,6 +31,9 @@ export default function WorkerMapPage() {
   const [selectedArea, setSelectedArea] = useState(GUWAHATI_AREAS[0]);
   const [selectedSkill, setSelectedSkill] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<any>(null);
+  const [aiMatches, setAiMatches] = useState<any[]>([]);
+  const [showAI, setShowAI] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     fetchSkills();
@@ -59,6 +63,30 @@ export default function WorkerMapPage() {
       return;
     }
     alert(`${action} initiated for ${selectedWorker.user.name}`);
+  };
+
+  const runAIMatch = async () => {
+    if (!selectedSkill) {
+      alert('Please select a skill first to run AI Matching.');
+      return;
+    }
+    setShowAI(true);
+    setAiLoading(true);
+    try {
+      const res = await api.get('/workers/match', {
+        params: {
+          skillId: selectedSkill,
+          lat: selectedArea.lat,
+          lng: selectedArea.lng,
+          limit: 5,
+        },
+      });
+      setAiMatches(res.data);
+    } catch (err) {
+      console.error('AI match error', err);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const fetchSkills = async () => {
@@ -100,10 +128,10 @@ export default function WorkerMapPage() {
             <span className="text-blue-400 ml-1 font-medium">This platform is strictly free from gender, religion, and community bias.</span>
           </p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-3 flex-wrap">
           <div className="relative">
             <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <select 
+            <select
               value={selectedSkill}
               onChange={(e) => setSelectedSkill(e.target.value)}
               className="pl-10 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
@@ -116,7 +144,7 @@ export default function WorkerMapPage() {
           </div>
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <select 
+            <select
               value={selectedArea.name}
               onChange={(e) => setSelectedArea(GUWAHATI_AREAS.find(a => a.name === e.target.value)!)}
               className="pl-10 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
@@ -126,11 +154,107 @@ export default function WorkerMapPage() {
               ))}
             </select>
           </div>
+          <Button onClick={runAIMatch}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold flex items-center gap-2">
+            <Zap size={16} /> AI Match
+          </Button>
           <Button className="bg-blue-600 hover:bg-blue-500 text-white">
             <Navigation size={18} className="mr-2" /> Recenter
           </Button>
         </div>
       </div>
+
+      {/* AI Match Results Panel */}
+      {showAI && (
+        <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/20 border border-purple-500/20 rounded-3xl p-6">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/20 rounded-xl">
+                <Zap size={18} className="text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-sm">AI Worker Matching Results</h3>
+                <p className="text-[10px] text-gray-500">Ranked by: 50% Proximity · 40% Proficiency · 10% Group Leader Bonus</p>
+              </div>
+            </div>
+            <button onClick={() => setShowAI(false)} className="text-gray-600 hover:text-white text-xs transition-colors">
+              ✕ Close
+            </button>
+          </div>
+
+          {aiLoading ? (
+            <div className="flex items-center justify-center h-20">
+              <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              <span className="ml-3 text-gray-400 text-sm">Calculating best matches...</span>
+            </div>
+          ) : aiMatches.length === 0 ? (
+            <p className="text-center text-gray-600 text-sm py-6">No matching workers found. Try a different skill or area.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {aiMatches.map((w: any, i: number) => (
+                <div
+                  key={w.id}
+                  onClick={() => { setSelectedWorker(w); setShowAI(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/30 rounded-2xl cursor-pointer transition-all space-y-3"
+                >
+                  {/* Rank badge */}
+                  <div className="flex items-center justify-between">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black text-white ${
+                      i === 0 ? 'bg-amber-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-600' : 'bg-white/10'
+                    }`}>
+                      #{i + 1}
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-purple-400">
+                      <Target size={10} />
+                      {w._score}pts
+                    </div>
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <p className="text-white font-bold text-sm truncate">{w.user?.name}</p>
+                    {w.isGroupLeader && (
+                      <span className="text-[9px] text-purple-400 font-bold bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded">
+                        GROUP LEADER
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Skill */}
+                  <p className="text-[10px] text-blue-400 font-medium">
+                    {w.skills?.[0]?.skill?.name ?? 'General'}
+                  </p>
+
+                  {/* Distance & Score bars */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] text-gray-500">
+                      <span>Distance</span>
+                      <span className="text-white">{w._distanceKm} km</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-gray-500">
+                      <span>Skill Level</span>
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(n => (
+                          <div key={n} className={`w-2 h-2 rounded-sm ${
+                            n <= (w.skills?.[0]?.level ?? 0) ? 'bg-blue-400' : 'bg-white/10'
+                          }`} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleAction('Hire'); }}
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-2 rounded-xl font-bold"
+                  >
+                    Hire Now
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
         {/* Map Area */}

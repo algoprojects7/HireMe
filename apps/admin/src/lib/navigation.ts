@@ -16,7 +16,11 @@ import {
   LifeBuoy,
   Key,
   Search,
-  UserCog
+  UserCog,
+  MapPin,
+  Zap,
+  Star,
+  TrendingUp,
 } from 'lucide-react';
 import { UserRole } from '@repo/types';
 
@@ -99,6 +103,24 @@ export const navigationItems: NavItem[] = [
     icon: BarChart3,
     roles: [UserRole.ADMIN],
   },
+  {
+    label: 'Analytics',
+    href: '/dashboard/analytics',
+    icon: TrendingUp,
+    roles: [UserRole.ADMIN],
+  },
+  {
+    label: 'Live Worker Map',
+    href: '/dashboard/map',
+    icon: MapPin,
+    roles: [UserRole.ADMIN, UserRole.PROVIDER],
+  },
+  {
+    label: 'Admin Support',
+    href: '/dashboard/support/admin',
+    icon: LifeBuoy,
+    roles: [UserRole.ADMIN],
+  },
 
   // Provider/Worker Specific
   {
@@ -118,6 +140,18 @@ export const navigationItems: NavItem[] = [
     href: '/dashboard/support',
     icon: LifeBuoy,
     roles: [UserRole.PROVIDER, UserRole.WORKER],
+  },
+  {
+    label: 'Live Map',
+    href: '/dashboard/map',
+    icon: MapPin,
+    roles: [UserRole.WORKER],
+  },
+  {
+    label: 'My Skills',
+    href: '/dashboard/skills',
+    icon: Star,
+    roles: [UserRole.WORKER],
   },
   
   // Shared Account

@@ -13,20 +13,22 @@ import { UsersModule } from './users/users.module';
 import { RedisModule } from './redis/redis.module';
 import { KycModule } from './kyc/kyc.module';
 import { SupportModule } from './support/support.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
-    DatabaseModule, 
-    AuthModule, 
-    WorkersModule, 
-    BookingsModule, 
-    WalletsModule, 
-    AIModule, 
-    NotificationsModule, 
+    DatabaseModule,
+    AuthModule,
+    WorkersModule,
+    BookingsModule,
+    WalletsModule,
+    AIModule,
+    NotificationsModule,
     UsersModule,
     RedisModule,
     KycModule,
-    SupportModule
+    SupportModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

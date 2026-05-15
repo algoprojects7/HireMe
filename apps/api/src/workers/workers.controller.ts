@@ -23,6 +23,36 @@ export class WorkersController {
     return this.workersService.findAll(req.user.tenantId);
   }
 
+  // Publicly accessible — visitors can browse without login
+  @Get('search')
+  search(@Query('skillId') skillId?: string, @Query('area') area?: string) {
+    return this.workersService.search({ skillId, area });
+  }
+
+  @Get('skills')
+  listSkills() {
+    return this.workersService.listSkills();
+  }
+
+  /**
+   * AI Worker Matching — Provider supplies skill + their GPS → ranked results.
+   * Scoring: 50% proximity + 40% proficiency + 10% group leader bonus.
+   */
+  @Get('match')
+  findBestMatch(
+    @Query('skillId') skillId: string,
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.workersService.findBestMatch(
+      skillId,
+      parseFloat(lat),
+      parseFloat(lng),
+      limit ? parseInt(limit) : 5,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.workersService.findOne(id);
@@ -39,15 +69,18 @@ export class WorkersController {
     return this.workersService.updateAvailability(id, isAvailable, lat, lng);
   }
 
-  @Get('search')
-  // Publicly accessible for visitors
-  search(@Query('skillId') skillId?: string, @Query('area') area?: string) {
-    return this.workersService.search({ skillId, area });
-  }
-
-  @Get('skills')
-  // Publicly accessible for visitors
-  listSkills() {
-    return this.workersService.listSkills();
+  /**
+   * Real GPS Integration: The worker's mobile/web app calls this every ~30s.
+   * No heavy RBAC — JWT token in header is sufficient for workers.
+   */
+  @Patch(':id/location')
+  @UseGuards(JwtAuthGuard)
+  updateLocation(
+    @Param('id') id: string,
+    @Body('lat') lat: number,
+    @Body('lng') lng: number,
+    @Body('accuracy') accuracy?: number,
+  ) {
+    return this.workersService.updateLocation(id, lat, lng, accuracy);
   }
 }

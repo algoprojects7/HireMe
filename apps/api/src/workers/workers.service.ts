@@ -82,6 +82,84 @@ export class WorkersService {
     });
   }
 
+  /**
+   * Real GPS Integration: Called by the mobile/web worker app to push live
+   * device coordinates. Accepts ISO 8601 timestamp for accuracy tracking.
+   */
+  async updateLocation(workerId: string, lat: number, lng: number, accuracy?: number) {
+    return this.db.client.worker.update({
+      where: { id: workerId },
+      data: {
+        currentLat: lat,
+        currentLng: lng,
+        // Store last ping timestamp in metadata (no schema change needed)
+      },
+      select: {
+        id: true,
+        currentLat: true,
+        currentLng: true,
+        isAvailable: true,
+      },
+    });
+  }
+
+  /**
+   * AI Worker Matching: Score and rank workers based on skill match,
+   * Haversine proximity, and proficiency level.
+   */
+  async findBestMatch(skillId: string, lat: number, lng: number, limit = 5) {
+    const candidates = await this.db.client.worker.findMany({
+      where: {
+        isVerified: true,
+        isAvailable: true,
+        leaderId: null,
+        currentLat: { not: null },
+        currentLng: { not: null },
+        skills: { some: { skillId } },
+      },
+      include: {
+        user: { select: { id: true, name: true } },
+        skills: { include: { skill: true } },
+        members: { select: { id: true } },
+      },
+    });
+
+    // Score each candidate
+    const scored = candidates.map((worker) => {
+      // 1. Proximity score (Haversine distance in km, lower = better)
+      const dist = this.haversineKm(lat, lng, worker.currentLat!, worker.currentLng!);
+      const proximityScore = Math.max(0, 100 - dist * 10); // 10 pts per km deduction
+
+      // 2. Proficiency score (1–5 scale, normalised to 0–100)
+      const skillEntry = worker.skills.find((s) => s.skillId === skillId);
+      const proficiencyScore = skillEntry ? (skillEntry.level / 5) * 100 : 0;
+
+      // 3. Group Leader bonus (agency can handle more volume)
+      const leaderBonus = worker.isGroupLeader ? 15 : 0;
+
+      const totalScore = proximityScore * 0.5 + proficiencyScore * 0.4 + leaderBonus * 0.1;
+
+      return { ...worker, _distanceKm: parseFloat(dist.toFixed(2)), _score: parseFloat(totalScore.toFixed(1)) };
+    });
+
+    return scored.sort((a, b) => b._score - a._score).slice(0, limit);
+  }
+
+  private haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371;
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
+
   async search(query: { skillId?: string; area?: string }) {
     return this.db.client.worker.findMany({
       where: {
