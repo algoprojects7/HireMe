@@ -59,6 +59,25 @@ const starfieldDots = [
 
 export function Hero() {
   const [index, setIndex] = useState(0);
+  const [activeMode, setActiveMode] = useState<"worker" | "customer">("worker");
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (typeof window !== "undefined") {
+        if (window.location.hash.includes('for-customers')) {
+          setActiveMode('customer');
+        } else if (window.location.hash.includes('for-workers')) {
+          setActiveMode('worker');
+        } else if (window.location.hash === '' || window.location.hash === '#') {
+          setActiveMode('worker');
+        }
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -162,7 +181,12 @@ export function Hero() {
             <div className="flex flex-wrap gap-3 mb-8">
               <Link
                 href="/auth/register?type=worker"
-                className="group flex items-center gap-2 px-6 py-3 bg-[#f5c518] text-[#0a1128] font-bold text-sm rounded-full hover:bg-[#e6b800] transition-all shadow-lg shadow-yellow-500/20"
+                className={`group flex items-center gap-2 px-6 py-3 font-bold text-sm rounded-full transition-all ${
+                  activeMode === 'worker'
+                    ? "bg-[#f5c518] text-[#0a1128] hover:bg-[#e6b800] shadow-lg shadow-yellow-500/20"
+                    : "bg-transparent text-white border border-white/20 hover:bg-white/5"
+                }`}
+                onClick={() => setActiveMode('worker')}
               >
                 I&apos;m a Worker
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -170,7 +194,12 @@ export function Hero() {
               </Link>
               <Link
                 href="/auth/register?type=customer"
-                className="group flex items-center gap-2 px-6 py-3 bg-transparent text-white font-bold text-sm rounded-full border border-white/20 hover:bg-white/5 transition-all"
+                className={`group flex items-center gap-2 px-6 py-3 font-bold text-sm rounded-full transition-all ${
+                  activeMode === 'customer'
+                    ? "bg-[#f5c518] text-[#0a1128] hover:bg-[#e6b800] shadow-lg shadow-yellow-500/20"
+                    : "bg-transparent text-white border border-white/20 hover:bg-white/5"
+                }`}
+                onClick={() => setActiveMode('customer')}
               >
                 Hire a Worker
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
