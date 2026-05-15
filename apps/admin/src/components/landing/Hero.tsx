@@ -202,7 +202,7 @@ export function Hero() {
                 <span className="block text-[10px] font-medium opacity-75 -ml-1">Find More Work with AI</span>
               </Link>
               <Link
-                href="/auth/register?type=customer"
+                href="/search"
                 className={`group flex items-center gap-2 px-6 py-3 font-bold text-sm rounded-full transition-all ${
                   activeMode === 'customer'
                     ? "bg-[#f5c518] text-[#0a1128] hover:bg-[#e6b800] shadow-lg shadow-yellow-500/20"
