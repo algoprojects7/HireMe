@@ -76,7 +76,11 @@ export function Hero() {
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    const interval = setInterval(handleHashChange, 200);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -88,6 +92,11 @@ export function Hero() {
 
   return (
     <section className="relative pt-16 overflow-hidden">
+      {/* Anchor points for navigation */}
+      <div id="for-workers" className="absolute top-0" />
+      <div id="for-customers" className="absolute top-0" />
+      <div id="ai-advantage#for-customers" className="absolute top-0" />
+
       {/* Background */}
       <div className="ks-hero-gradient absolute inset-0" />
       <div className="ks-hero-overlay absolute inset-0" />

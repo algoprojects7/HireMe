@@ -8,6 +8,7 @@ const navLinks = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "For Workers", href: "#for-workers" },
   { label: "For Customers", href: "#for-customers" },
+  { label: "Features", href: "#features" },
   { label: "AI Advantage", href: "#ai-advantage" },
   { label: "Pricing", href: "#pricing" },
   { label: "About Us", href: "#about" },

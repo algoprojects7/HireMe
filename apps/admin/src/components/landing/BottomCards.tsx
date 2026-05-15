@@ -3,7 +3,7 @@ import { ShieldCheck, Check, Star, ArrowRight } from "lucide-react";
 
 export function BottomCards() {
   return (
-    <section className="py-12 sm:py-16 bg-white">
+    <section id="pricing" className="py-12 sm:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid md:grid-cols-3 gap-5">
           {/* Card 1: Earnings Security */}
