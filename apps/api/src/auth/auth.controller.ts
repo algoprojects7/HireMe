@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Body, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, HttpCode, HttpStatus, UnauthorizedException, Param, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -25,5 +26,27 @@ export class AuthController {
   @Get('seed')
   seed() {
     return this.authService.seedAdmin();
+  }
+
+  @Post('qr-session')
+  createQrSession() {
+    return this.authService.createQrSession();
+  }
+
+  @Get('qr-status/:id')
+  getQrStatus(@Param('id') id: string) {
+    return this.authService.getQrSessionStatus(id);
+  }
+
+  @Post('qr-authorize')
+  @UseGuards(JwtAuthGuard)
+  authorizeQrSession(@Body('sessionId') sessionId: string, @Request() req) {
+    return this.authService.authorizeQrSession(sessionId, req.user.userId);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(@Body() data: any, @Request() req) {
+    return this.authService.changePassword(req.user.userId, data);
   }
 }

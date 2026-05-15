@@ -36,6 +36,13 @@ enum TransactionType {
   DEBIT
 }
 
+enum KycStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Tenant {
   id          String   @id @default(cuid())
   name        String
@@ -73,6 +80,26 @@ model User {
   notifications Notification[]
   sessions      Session[]
   adminLogs     AdminLog[]
+  kycRequest    KycRequest?
+  kycStatus     KycStatus @default(NOT_SUBMITTED)
+  supportTickets SupportTicket[]
+  supportMessages SupportMessage[]
+}
+
+model KycRequest {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  
+  aadhaarNumber String
+  panNumber     String
+  photoUrl      String
+  
+  status        KycStatus @default(PENDING)
+  adminComment  String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Worker {
@@ -94,6 +121,12 @@ model Worker {
   bookings        Booking[]
   reviews         Review[] @relation("WorkerReviews")
   payouts         Payout[]
+
+  // Group Support
+  leaderId        String?
+  leader          Worker?   @relation("WorkerGroup", fields: [leaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  members         Worker[]  @relation("WorkerGroup")
+  groupSize       Int       @default(1) // Number of people in the group if this worker is a leader
 }
 
 model Customer {
@@ -146,6 +179,10 @@ model Booking {
   customer        Customer      @relation(fields: [customerId], references: [id])
   
   status          BookingStatus @default(PENDING)
+  paymentStatus   String        @default("UNPAID")  // UNPAID, ADVANCE_PAID, PAID_FULL
+  isAdvancePaid   Boolean       @default(false)
+  workerFeedback  Boolean       @default(false)     // No issues from worker
+  providerFeedback Boolean      @default(false)     // No issues from provider
   amount          Float
   platformFee     Float
   workerEarning   Float
@@ -174,24 +211,38 @@ model BookingHistory {
 }
 
 model Wallet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  balance   Float    @default(0)
-  currency  String   @default("INR")
-  
-  ledger    WalletLedger[]
+  id          String              @id @default(cuid())
+  userId      String              @unique
+  user        User                @relation(fields: [userId], references: [id])
+  balance     Float               @default(0)
+  currency    String              @default("INR")
+  ledger      WalletLedger[]
+  withdrawals WithdrawalRequest[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 }
 
 model WalletLedger {
-  id          String          @id @default(cuid())
+  id          String   @id @default(cuid())
   walletId    String
-  wallet      Wallet          @relation(fields: [walletId], references: [id])
-  type        TransactionType
+  wallet      Wallet   @relation(fields: [walletId], references: [id])
   amount      Float
+  type        String   // CREDIT, DEBIT
   description String
-  metadata    Json?           // Reference to booking, payout, etc.
-  createdAt   DateTime        @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model WithdrawalRequest {
+  id          String   @id @default(cuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id])
+  amount      Float
+  fee         Float    // 2.5% service charge
+  netAmount   Float    // amount - fee
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  accountInfo String?  // Bank/UPI details
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Payment {
@@ -281,4 +332,27 @@ model Dispute {
   reason    String
   status    String   @default("OPEN") // OPEN, RESOLVED, REJECTED
   createdAt DateTime @default(now())
+}
+
+model SupportTicket {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  title       String
+  description String
+  status      String           @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority    String           @default("MEDIUM") // LOW, MEDIUM, HIGH
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  messages    SupportMessage[]
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id])
+  senderId  String
+  sender    User          @relation(fields: [senderId], references: [id])
+  message   String
+  createdAt DateTime      @default(now())
 }

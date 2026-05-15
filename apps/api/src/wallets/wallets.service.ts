@@ -53,4 +53,53 @@ export class WalletsService {
       });
     });
   }
+
+  async requestWithdrawal(userId: string, amount: number, accountInfo: string) {
+    const wallet = await this.getWallet(userId);
+    
+    if (wallet.balance < amount) {
+      throw new BadRequestException('Insufficient balance for withdrawal');
+    }
+
+    const fee = amount * 0.025; // 2.5% Razorpay/Service fee
+    const netAmount = amount - fee;
+
+    return this.db.client.$transaction(async (tx) => {
+      // Deduct from wallet
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: wallet.balance - amount },
+      });
+
+      // Create ledger entry
+      await tx.walletLedger.create({
+        data: {
+          walletId: wallet.id,
+          type: 'DEBIT',
+          amount,
+          description: `Withdrawal request for ₹${amount} (Fee: ₹${fee})`,
+        },
+      });
+
+      // Create withdrawal request
+      return tx.withdrawalRequest.create({
+        data: {
+          walletId: wallet.id,
+          amount,
+          fee,
+          netAmount,
+          accountInfo,
+          status: 'PENDING',
+        },
+      });
+    });
+  }
+
+  async getMyWithdrawals(userId: string) {
+    const wallet = await this.getWallet(userId);
+    return this.db.client.withdrawalRequest.findMany({
+      where: { walletId: wallet.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

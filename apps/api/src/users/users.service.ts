@@ -68,4 +68,63 @@ export class UsersService {
       }
     });
   }
+
+  async findPublicProfile(id: string) {
+    const user = await this.db.client.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        kycStatus: true,
+        createdAt: true,
+        kycRequest: {
+          select: {
+            photoUrl: true,
+          }
+        }
+      }
+    });
+
+    if (!user) return null;
+
+    const { kycRequest, ...rest } = user;
+    return {
+      ...rest,
+      photoUrl: kycRequest?.photoUrl || null,
+    };
+  }
+
+  async update(id: string, data: any) {
+    const { kycRequest, ...userData } = data;
+
+    // Update main user data
+    const user = await this.db.client.user.update({
+      where: { id },
+      data: userData,
+      select: {
+        id: true,
+        phone: true,
+        name: true,
+        gender: true,
+        role: true,
+        tenantId: true,
+        kycStatus: true,
+      }
+    });
+
+    // If KYC data is provided (Adhaar, PAN, Photo), update the KycRequest
+    if (kycRequest) {
+      await this.db.client.kycRequest.upsert({
+        where: { userId: id },
+        update: kycRequest,
+        create: {
+          userId: id,
+          ...kycRequest,
+        }
+      });
+    }
+
+    return user;
+  }
 }

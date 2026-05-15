@@ -4,6 +4,10 @@
 4) Login using QR Code or Mobile Number and Password. 
 5) Admin also have the provision to update KYC of the worker, and also to generate the QR Code. Update profile pic, Adhaar, PAN , and other details as required. 
 6) Users (Provider/Worker) have the provision to update Profile dashboard and KYC info. 
+7) Search a worker usng Map and the map will show the real tracking live of the workers, based on area like Hatigaon, Bhangagarh, Ganeshguri, 
+Noonmati, Beltola, Basistha, Dispur, Zoo Road, Sundarbari, Jalukbari, Adabari, Beltola, Khanapara.After finding a worker, the provider may call the worker/message
+the worker and confirm the work. When the provider will communicate through call/message, the mobile number of the worker must be hidden from the provider, just name and ID, and area where he/she is located currently. In case of any mismatch of work, the provider has to report to the admin. Admin will take the final decision. 
+
 
 Admin Menu                                 
 ============

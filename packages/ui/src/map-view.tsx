@@ -6,6 +6,7 @@ import { MapPin, Navigation } from 'lucide-react';
 interface MapViewProps {
   workers: any[];
   center?: { lat: number; lng: number };
+  onWorkerClick?: (worker: any) => void;
 }
 
 export function MapView({ workers, center = { lat: 26.1445, lng: 91.7362 } }: MapViewProps) {
@@ -20,13 +21,20 @@ export function MapView({ workers, center = { lat: 26.1445, lng: 91.7362 } }: Ma
           <div 
             key={worker.id}
             className="absolute transition-all transform hover:scale-110 cursor-pointer group"
+            onClick={() => onWorkerClick?.(worker)}
             style={{ 
-              left: `${50 + (worker.currentLng - center.lng) * 100}%`, 
-              top: `${50 - (worker.currentLat - center.lat) * 100}%` 
+              left: `${50 + (worker.currentLng - center.lng) * 2000}%`, 
+              top: `${50 - (worker.currentLat - center.lat) * 2000}%` 
             }}
           >
-            <div className="p-2 bg-blue-500 rounded-full shadow-lg border-2 border-[#0a0a0a]">
-              <MapPin size={16} className="text-white" />
+            <div className={`w-10 h-10 rounded-full border-2 shadow-xl overflow-hidden bg-white flex items-center justify-center transition-all ${
+              worker.groupSize > 1 ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-blue-500'
+            }`}>
+              {worker.photoUrl ? (
+                <img src={worker.photoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-xs font-bold text-blue-500">{worker.user.name.charAt(0)}</div>
+              )}
             </div>
             
             {/* Tooltip */}

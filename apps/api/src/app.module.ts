@@ -11,6 +11,8 @@ import { AIModule } from './ai/ai.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { UsersModule } from './users/users.module';
 import { RedisModule } from './redis/redis.module';
+import { KycModule } from './kyc/kyc.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -22,7 +24,9 @@ import { RedisModule } from './redis/redis.module';
     AIModule, 
     NotificationsModule, 
     UsersModule,
-    RedisModule
+    RedisModule,
+    KycModule,
+    SupportModule
   ],
   controllers: [AppController],
   providers: [AppService],

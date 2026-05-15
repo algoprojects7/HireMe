@@ -7,7 +7,7 @@ import { Button } from '@repo/ui';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { UserRole } from '@repo/types';
-import { Eye, EyeOff, Briefcase, Wrench, ChevronRight } from 'lucide-react';
+import { Eye, EyeOff, Briefcase, Wrench, ChevronRight, Users } from 'lucide-react';
 
 const roles = [
   {
@@ -39,6 +39,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<string>(UserRole.PROVIDER);
+  const [isGroupLeader, setIsGroupLeader] = useState(false);
+  const [groupSize, setGroupSize] = useState('1');
   const [recaptchaVerified, setRecaptchaVerified] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +62,8 @@ export default function RegisterPage() {
         password,
         name,
         role,
+        isGroupLeader,
+        groupSize,
       });
       // const { user, access_token } = response.data;
       // setAuth(user, access_token);
@@ -152,6 +156,43 @@ export default function RegisterPage() {
               })}
             </div>
           </div>
+
+          {role === UserRole.WORKER && (
+            <div className="p-5 bg-purple-500/5 border border-purple-500/20 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <Users className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white leading-tight">Group Leader</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Represent a team</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsGroupLeader(!isGroupLeader)}
+                  className={`w-12 h-6 rounded-full transition-all relative ${isGroupLeader ? 'bg-purple-600' : 'bg-gray-700'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isGroupLeader ? 'right-1' : 'left-1'}`} />
+                </button>
+              </div>
+
+              {isGroupLeader && (
+                <div className="space-y-2 pt-2 border-t border-purple-500/10">
+                  <label className="block text-xs font-bold text-purple-300 uppercase tracking-widest">Total Workers in Group</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={groupSize}
+                    onChange={(e) => setGroupSize(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition-all"
+                    placeholder="Enter total count"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Divider */}
           <div className="flex items-center gap-3">

@@ -81,4 +81,39 @@ export class WorkersService {
       },
     });
   }
+
+  async search(query: { skillId?: string; area?: string }) {
+    return this.db.client.worker.findMany({
+      where: {
+        isVerified: true,
+        isAvailable: true,
+        leaderId: null, // Only show individual workers or group leaders on the map
+        ...(query.skillId && {
+          skills: {
+            some: { skillId: query.skillId }
+          }
+        }),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        skills: {
+          include: {
+            skill: true,
+          },
+        },
+        members: {
+          select: { id: true }
+        }
+      },
+    });
+  }
+
+  async listSkills() {
+    return this.db.client.skill.findMany();
+  }
 }

@@ -1,13 +1,16 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../database/database.service';
+import { RedisService } from '../redis/redis.service';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly db: DatabaseService,
     private readonly jwt: JwtService,
+    private readonly redis: RedisService,
   ) {}
 
   async validateUser(phone: string, pass: string): Promise<any> {
@@ -71,6 +74,14 @@ export class AuthService {
         role: role as any,
         tenantId: targetTenantId,
         gender,
+        ...(role === 'WORKER' && {
+          worker: {
+            create: {
+              tenantId: targetTenantId,
+              groupSize: data.isGroupLeader ? (Number(data.groupSize) || 1) : 1,
+            }
+          }
+        })
       },
     });
 
@@ -118,5 +129,53 @@ export class AuthService {
     });
 
     return { message: 'Admin seeded', adminId: admin.id };
+  }
+
+  async createQrSession() {
+    const sessionId = uuidv4();
+    await this.redis.set(`qr_session:${sessionId}`, { status: 'PENDING' }, 120); // 2 minutes
+    return { sessionId };
+  }
+
+  async authorizeQrSession(sessionId: string, userId: string) {
+    const session = await this.redis.get(`qr_session:${sessionId}`);
+    if (!session) {
+      throw new BadRequestException('Session expired or invalid');
+    }
+
+    const user = await this.db.client.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const authData = await this.login(user);
+    await this.redis.set(`qr_session:${sessionId}`, { 
+      status: 'AUTHORIZED', 
+      ...authData 
+    }, 60); // Keep for 1 minute to allow polling pick-up
+
+    return { success: true };
+  }
+
+  async getQrSessionStatus(sessionId: string) {
+    const session = await this.redis.get(`qr_session:${sessionId}`);
+    if (!session) return { status: 'EXPIRED' };
+    return session;
+  }
+
+  async changePassword(userId: string, data: any) {
+    const user = await this.db.client.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const isMatch = await bcrypt.compare(data.oldPassword, user.password);
+    if (!isMatch) {
+      throw new BadRequestException('Incorrect current password');
+    }
+
+    const hashedPassword = await bcrypt.hash(data.newPassword, 10);
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true, message: 'Password changed successfully' };
   }
 }

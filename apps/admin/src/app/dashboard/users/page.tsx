@@ -10,7 +10,8 @@ import {
   ShieldAlert,
   Mail,
   Phone,
-  ArrowUpDown
+  ArrowUpDown,
+  QrCode
 } from 'lucide-react';
 import { Button } from '@repo/ui';
 import api from '@/lib/api';
@@ -128,15 +129,30 @@ export default function UsersManagementPage() {
                       {user.gender || 'Not specified'}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center text-amber-400 text-xs font-medium">
-                        <ShieldAlert size={14} className="mr-1.5" />
-                        {user.kycVerified ? 'Verified' : 'Pending'}
+                      <div className={`flex items-center text-[10px] font-bold uppercase tracking-wider ${
+                        user.kycStatus === 'APPROVED' ? 'text-emerald-400' : 
+                        user.kycStatus === 'PENDING' ? 'text-amber-400' : 'text-gray-500'
+                      }`}>
+                        <ShieldCheck size={14} className="mr-1.5" />
+                        {user.kycStatus || 'NOT_SUBMITTED'}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all">
-                        <MoreVertical size={18} />
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => window.location.href = `/dashboard/qr-codes?userId=${user.id}`}
+                          className="p-2 text-gray-400 hover:text-blue-400 hover:bg-white/5 rounded-lg transition-all"
+                          title="View QR Code"
+                        >
+                          <QrCode size={18} />
+                        </button>
+                        <button 
+                          className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                          title="Manage User"
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
