@@ -25,7 +25,7 @@ export default function MapSearchPage() {
   
   const [locationQuery, setLocationQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState('');
-  const [mapCenter, setMapCenter] = useState({ lat: 26.1445, lng: 91.7362 });
+  const [mapCenter, setMapCenter] = useState({ lat: 26.1456, lng: 91.6789 });
   const [selectedWorker, setSelectedWorker] = useState<any>(null);
 
   const [skillSearch, setSkillSearch] = useState('');

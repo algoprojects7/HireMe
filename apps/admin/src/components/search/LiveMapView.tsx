@@ -180,8 +180,8 @@ export default function LiveMapView({ workers, center, onWorkerClick, onMapClick
             <AdvancedMarker
               key={worker.id}
               position={{
-                lat: worker.currentLat || 26.1445,
-                lng: worker.currentLng || 91.7362,
+                lat: worker.currentLat || 26.1456,
+                lng: worker.currentLng || 91.6789,
               }}
               onClick={() => {
                 setActiveWorker(worker);
@@ -211,8 +211,8 @@ export default function LiveMapView({ workers, center, onWorkerClick, onMapClick
           {activeWorker && (
             <InfoWindow
               position={{
-                lat: activeWorker.currentLat || 26.1445,
-                lng: activeWorker.currentLng || 91.7362,
+                lat: activeWorker.currentLat || 26.1456,
+                lng: activeWorker.currentLng || 91.6789,
               }}
               onCloseClick={() => setActiveWorker(null)}
             >

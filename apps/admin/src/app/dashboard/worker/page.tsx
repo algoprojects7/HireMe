@@ -63,8 +63,8 @@ export default function WorkerDashboard() {
         const nextStatus = !isAvailable;
         await api.patch(`/workers/${user.worker!.id}/availability`, { 
           isAvailable: nextStatus,
-          lat: lat || 26.1311, 
-          lng: lng || 91.7856
+          lat: lat || 26.1456, 
+          lng: lng || 91.6789
         });
         setIsAvailable(nextStatus);
       } catch (err) {
