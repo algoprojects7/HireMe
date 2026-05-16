@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@repo/ui';
 import Link from 'next/link';
+import api from '@/lib/api';
 
 export default function AdminDashboard() {
   const [summary, setSummary] = React.useState<any>(null);
