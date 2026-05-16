@@ -55,8 +55,8 @@ export default function BookingsPage() {
           </div>
         ) : (
           bookings.map((booking: any) => {
-            const isWorker = booking.worker?.userId === user?.userId;
-            const isProvider = booking.customer?.userId === user?.userId;
+            const isWorker = booking.worker?.userId === user?.id;
+            const isProvider = booking.customer?.userId === user?.id;
             const canReview = booking.status === 'COMPLETED' && (isWorker || isProvider);
             const needsPayment = isProvider && booking.paymentStatus === 'UNPAID';
             const canGiveFeedback = booking.status === 'IN_PROGRESS' || booking.status === 'CONFIRMED';
@@ -148,7 +148,7 @@ export default function BookingsPage() {
       {reviewingBooking && (
         <ReviewModal
           bookingId={reviewingBooking.id}
-          role={reviewingBooking.worker?.userId === user?.userId ? 'WORKER_TO_PROVIDER' : 'PROVIDER_TO_WORKER'}
+          role={reviewingBooking.worker?.userId === user?.id ? 'WORKER_TO_PROVIDER' : 'PROVIDER_TO_WORKER'}
           onClose={() => setReviewingBooking(null)}
           onSuccess={() => {
             fetchBookings();

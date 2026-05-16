@@ -38,7 +38,7 @@ export default function WorkersPage() {
 
       {/* Live Map Tracking */}
       <div className="mb-8">
-        <MapView workers={workers} />
+        <MapView workers={workers} center={{ lat: 26.1445, lng: 91.7362 }} onWorkerClick={() => {}} />
       </div>
 
       {/* Filters */}

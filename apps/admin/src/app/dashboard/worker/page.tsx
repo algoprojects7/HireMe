@@ -61,7 +61,7 @@ export default function WorkerDashboard() {
     const updateStatus = async (lat?: number, lng?: number) => {
       try {
         const nextStatus = !isAvailable;
-        await api.patch(`/workers/${user.worker.id}/availability`, { 
+        await api.patch(`/workers/${user.worker!.id}/availability`, { 
           isAvailable: nextStatus,
           lat: lat || 26.1311, 
           lng: lng || 91.7856

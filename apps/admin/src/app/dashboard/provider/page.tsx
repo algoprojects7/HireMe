@@ -23,7 +23,7 @@ export default function ProviderDashboard() {
     const fetchStats = async () => {
       if (!user) return;
       try {
-        const response = await api.get(`/reviews/stats/${user.userId}?type=CUSTOMER`);
+        const response = await api.get(`/reviews/stats/${user.id}?type=CUSTOMER`);
         setStats(response.data);
       } catch (err) {
         console.error('Failed to fetch stats', err);

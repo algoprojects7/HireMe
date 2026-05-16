@@ -1,5 +1,15 @@
 "use client";
 
+/// <reference types="google.maps" />
+declare namespace google.maps {
+  interface MapMouseEvent {
+    latLng?: { lat(): number; lng(): number } | null;
+  }
+  namespace event {
+    function removeListener(listener: any): void;
+  }
+}
+
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   APIProvider,
