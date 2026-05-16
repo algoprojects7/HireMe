@@ -6,16 +6,17 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "clean": "turbo run clean && rm -rf node_modules",
+    "clean": "turbo run clean && rimraf --glob node_modules .turbo apps/**/.next apps/**/.turbo packages/**/.turbo",
     "prepare": "husky install",
     "studio": "prisma studio --schema packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
-    "turbo": "^1.10.15",
-    "prettier": "^3.0.3",
-    "typescript": "^5.2.2",
     "eslint": "^8.48.0",
-    "husky": "^8.0.3"
+    "husky": "^8.0.3",
+    "prettier": "^3.0.3",
+    "rimraf": "^6.1.3",
+    "turbo": "^1.10.15",
+    "typescript": "^5.2.2"
   },
   "engines": {
     "node": ">=18.0.0"

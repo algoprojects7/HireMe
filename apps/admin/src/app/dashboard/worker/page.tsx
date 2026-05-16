@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ClipboardList,
   Wallet,
@@ -21,17 +21,77 @@ export default function WorkerDashboard() {
   const { user } = useAuthStore();
 
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return;
+    const initDashboard = async () => {
+      if (!user?.worker?.id) return;
       try {
-        const response = await api.get(`/reviews/stats/${user.userId}?type=WORKER`);
-        setStats(response.data);
+        // Fetch worker profile to get current availability status
+        const workerRes = await api.get(`/workers/${user.worker.id}`);
+        setIsAvailable(workerRes.data.isAvailable);
+
+        // Fetch stats
+        const statsRes = await api.get(`/reviews/stats/${user.id}?type=WORKER`);
+        setStats(statsRes.data);
       } catch (err) {
-        console.error('Failed to fetch stats', err);
+        console.error('Failed to initialize dashboard', err);
       }
     };
-    fetchStats();
+    initDashboard();
   }, [user]);
+
+  // Background tracking logic
+  useEffect(() => {
+    let interval: any;
+    if (isAvailable && "geolocation" in navigator) {
+      // Update location every 60 seconds if online
+      interval = setInterval(() => {
+        navigator.geolocation.getCurrentPosition((position) => {
+          api.patch(`/workers/${user?.worker?.id}/location`, {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }).catch(err => console.error('Background tracking failed', err));
+        });
+      }, 60000);
+    }
+    return () => clearInterval(interval);
+  }, [isAvailable, user?.worker?.id]);
+
+  const handleToggleAvailability = async () => {
+    if (!user?.worker?.id) return;
+    
+    const updateStatus = async (lat?: number, lng?: number) => {
+      try {
+        const nextStatus = !isAvailable;
+        await api.patch(`/workers/${user.worker.id}/availability`, { 
+          isAvailable: nextStatus,
+          lat: lat || 26.1311, 
+          lng: lng || 91.7856
+        });
+        setIsAvailable(nextStatus);
+      } catch (err) {
+        console.error('Failed to update availability', err);
+      }
+    };
+
+    if (!isAvailable) {
+      // If going online, try to get real location
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            updateStatus(position.coords.latitude, position.coords.longitude);
+          },
+          (error) => {
+            console.warn("Geolocation failed, using default", error);
+            updateStatus();
+          }
+        );
+      } else {
+        updateStatus();
+      }
+    } else {
+      // Just going offline
+      updateStatus();
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -50,7 +110,7 @@ export default function WorkerDashboard() {
             </span>
           </div>
           <button 
-            onClick={() => setIsAvailable(!isAvailable)}
+            onClick={handleToggleAvailability}
             className={`px-6 py-3 rounded-xl font-bold text-xs transition-all ${
               isAvailable 
                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' 
@@ -61,6 +121,15 @@ export default function WorkerDashboard() {
           </button>
         </div>
       </div>
+
+      {isAvailable && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl w-fit">
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-ping" />
+          <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+            Tracking Active: {navigator.geolocation ? 'Real-time GPS' : 'Fallback Mode'}
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 

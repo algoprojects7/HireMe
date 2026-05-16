@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "set PORT=3000 && next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@repo/ui": "*",
+    "@vis.gl/react-google-maps": "^1.5.0",
     "axios": "^1.6.0",
     "clsx": "^2.0.0",
     "framer-motion": "^12.38.0",

@@ -9,6 +9,12 @@ export const GUWAHATI_AREAS = [
   { name: "Dispur", lat: 26.1433, lng: 91.7898 },
   { name: "Noonmati", lat: 26.1895, lng: 91.7995 },
   { name: "Khanapara", lat: 26.1158, lng: 91.8217 },
+  { name: "Hatigaon", lat: 26.1311, lng: 91.7856 },
+  { name: "Bhangagarh", lat: 26.1542, lng: 91.7634 },
+  { name: "Basistha", lat: 26.1045, lng: 91.7878 },
+  { name: "Zoo Road", lat: 26.1689, lng: 91.7765 },
+  { name: "Sundarbari", lat: 26.1456, lng: 91.6789 },
+  { name: "Adabari", lat: 26.1623, lng: 91.6845 },
 ];
 
 export const findLocation = (query: string) => {

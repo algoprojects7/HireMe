@@ -16,6 +16,7 @@ export class AuthService {
   async validateUser(phone: string, pass: string): Promise<any> {
     const user = await this.db.client.user.findUnique({
       where: { phone },
+      include: { worker: true }
     });
 
     if (user && await bcrypt.compare(pass, user.password)) {
@@ -40,6 +41,7 @@ export class AuthService {
         phone: user.phone,
         role: user.role,
         tenantId: user.tenantId,
+        worker: user.worker ? { id: user.worker.id } : null,
       },
     };
   }
@@ -78,6 +80,7 @@ export class AuthService {
           worker: {
             create: {
               tenantId: targetTenantId,
+              isGroupLeader: !!data.isGroupLeader,
               groupSize: data.isGroupLeader ? (Number(data.groupSize) || 1) : 1,
             }
           }
@@ -116,7 +119,10 @@ export class AuthService {
       return { message: 'Admin already exists' };
     }
 
-    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'admin123';
+    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+    if (!adminPassword) {
+      return { message: 'Initial admin password not configured' };
+    }
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     const admin = await this.db.client.user.create({
       data: {

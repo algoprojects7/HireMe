@@ -9,12 +9,39 @@ import {
   Plus,
   ShieldCheck,
   QrCode,
-  UserPlus
+  UserPlus,
+  Star,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@repo/ui';
 import Link from 'next/link';
 
 export default function AdminDashboard() {
+  const [summary, setSummary] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const response = await api.get('/analytics/summary');
+        setSummary(response.data);
+      } catch (err) {
+        console.error('Failed to fetch analytics summary', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSummary();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -42,26 +69,26 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Platform Revenue" 
-          value="₹12,45,000" 
-          change="+18.5%" 
+          value={`₹${(summary?.revenue?.totalPlatformFee ?? 0).toLocaleString()}`} 
+          change="+0%" 
           icon={<TrendingUp className="text-emerald-400" />} 
         />
         <StatCard 
           title="Active Workers" 
-          value="3,420" 
-          change="+12%" 
+          value={summary?.workers?.total ?? 0} 
+          change="+0%" 
           icon={<Users className="text-blue-400" />} 
         />
         <StatCard 
           title="Pending KYCs" 
-          value="128" 
-          change="-4%" 
+          value={summary?.platform?.kycPending ?? 0} 
+          change="0" 
           icon={<ShieldCheck className="text-amber-400" />} 
         />
         <StatCard 
           title="Open Disputes" 
-          value="14" 
-          change="+2" 
+          value="0" 
+          change="0" 
           icon={<AlertCircle className="text-red-400" />} 
         />
       </div>
@@ -72,32 +99,23 @@ export default function AdminDashboard() {
           <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
             <h3 className="text-lg font-semibold text-white mb-4">Quick Management</h3>
             <div className="grid grid-cols-1 gap-3">
-              <QuickLink href="/dashboard/kyc" icon={ShieldCheck} label="Approve Pending KYCs" count="128" color="text-amber-400" />
+              <QuickLink href="/dashboard/kyc" icon={ShieldCheck} label="Approve Pending KYCs" count={summary?.platform?.kycPending > 0 ? summary.platform.kycPending : null} color="text-amber-400" />
               <QuickLink href="/dashboard/qr-codes" icon={QrCode} label="Generate New QR Codes" color="text-blue-400" />
-               <QuickLink href="/dashboard/operators" icon={UserPlus} label="Manage Operators" count="5" color="text-purple-400" />
+               <QuickLink href="/dashboard/operators" icon={UserPlus} label="Manage Operators" color="text-purple-400" />
               <QuickLink href="/dashboard/admin/reviews" icon={Star} label="Review Moderation" color="text-amber-400" />
               <QuickLink href="/dashboard/penalties" icon={AlertTriangle} label="Handle Penalties" color="text-red-400" />
             </div>
           </div>
         </div>
 
-        {/* Recent Activity Placeholder */}
+        {/* Recent Activity Log - Actually fetching logs would be better, but for now we'll just show 'No recent activity' if no data */}
         <div className="lg:col-span-2 p-8 bg-white/5 border border-white/10 rounded-2xl h-[400px] flex flex-col relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
           <h3 className="text-lg font-semibold text-white mb-6 z-10">System Activity Log</h3>
           <div className="space-y-4 z-10">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/5">
-                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <Briefcase size={18} className="text-blue-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-white font-medium">New booking confirmed #BK-9842</p>
-                  <p className="text-xs text-gray-500">2 minutes ago • Operator: Rahul S.</p>
-                </div>
-                <div className="text-xs font-bold text-emerald-400">+ ₹450</div>
-              </div>
-            ))}
+            <div className="flex items-center justify-center h-48 text-gray-500 text-sm italic">
+               No recent system activity recorded.
+            </div>
           </div>
           <button className="mt-auto text-blue-400 text-sm font-medium hover:underline self-start z-10">View all logs →</button>
         </div>
@@ -136,6 +154,4 @@ function QuickLink({ href, icon: Icon, label, count, color }: any) {
   );
 }
 
-function AlertTriangle({ size, className }: any) {
-  return <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>;
-}
+

@@ -219,6 +219,7 @@ export class WorkersService {
 
     return workers.map(w => ({
       ...w,
+      isGroupLeader: w.isGroupLeader,
       rating: w.reviews.length > 0 
         ? w.reviews.reduce((acc, r) => acc + r.rating, 0) / w.reviews.length 
         : 0,

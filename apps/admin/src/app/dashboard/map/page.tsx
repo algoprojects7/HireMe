@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { MapView } from '@repo/ui/map-view';
+import { MapView } from '@repo/ui';
 import { Search, MapPin, Navigation, Filter, Briefcase, PhoneOff, MessageSquare, Phone, Users, LogIn, Zap, Star, Target } from 'lucide-react';
 import { Button } from '@repo/ui';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -104,13 +104,7 @@ export default function WorkerMapPage() {
       const response = await api.get('/workers/search', {
         params: { skillId: selectedSkill || undefined }
       });
-      // For demo, we simulate random positions around the selected area
-      const simulated = response.data.map((w: any) => ({
-        ...w,
-        currentLat: selectedArea.lat + (Math.random() - 0.5) * 0.02,
-        currentLng: selectedArea.lng + (Math.random() - 0.5) * 0.02,
-      }));
-      setWorkers(simulated);
+      setWorkers(response.data);
     } catch (err) {
       console.error('Error searching workers', err);
     } finally {

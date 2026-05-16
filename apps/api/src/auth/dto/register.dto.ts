@@ -20,4 +20,10 @@ export class RegisterDto {
 
   @IsOptional()
   tenantId?: string;
+
+  @IsOptional()
+  isGroupLeader?: boolean;
+
+  @IsOptional()
+  groupSize?: string | number;
 }

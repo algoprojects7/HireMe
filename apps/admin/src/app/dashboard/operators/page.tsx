@@ -43,9 +43,6 @@ export default function OperatorsManagementPage() {
       const response = await api.post('/users/operators', form);
       setOperators([...operators, { 
         ...response.data,
-        status: 'Active', 
-        tasksToday: 0, 
-        lastActive: 'Just now' 
       }]);
       setShowModal(false);
       setForm({ name: '', phone: '', password: '' });
@@ -104,15 +101,7 @@ export default function OperatorsManagementPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">Status</span>
-                  <span className="text-emerald-400 font-bold">{op.status || 'Active'}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Tasks Completed Today</span>
-                  <span className="text-white font-bold">{op.tasksToday || 0}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Last Active</span>
-                  <span className="text-gray-300">{op.lastActive || 'N/A'}</span>
+                  <span className="text-emerald-400 font-bold">{op.isActive !== false ? 'Active' : 'Inactive'}</span>
                 </div>
               </div>
               

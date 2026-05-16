@@ -8,7 +8,7 @@ import { DatabaseModule } from '../database/database.module';
   imports: [
     DatabaseModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secretKey',
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
     }),
   ],

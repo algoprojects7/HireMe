@@ -5,10 +5,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: [
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [
       'http://localhost:3000',
+      'http://127.0.0.1:3000',
       'https://hiremetoo.vercel.app',
-      /\.vercel\.app$/ // Allow all vercel preview deployments
     ],
     credentials: true,
   });
@@ -18,7 +18,7 @@ async function bootstrap() {
     transform: true,
   }));
   const port = process.env.PORT ?? 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`API is running on: http://localhost:${port}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 }

@@ -14,6 +14,7 @@ export interface User {
   gender?: string;
   role: UserRole;
   tenantId: string;
+  worker?: { id: string };
 }
 
 export interface Worker extends User {

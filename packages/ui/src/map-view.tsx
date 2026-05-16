@@ -7,13 +7,34 @@ interface MapViewProps {
   workers: any[];
   center: { lat: number; lng: number };
   onWorkerClick: (worker: any) => void;
+  onMapClick?: (lat: number, lng: number) => void;
 }
 
-export function MapView({ workers, center, onWorkerClick }: MapViewProps) {
+export function MapView({ workers, center, onWorkerClick, onMapClick }: MapViewProps) {
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (!onMapClick) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Reverse the simulation logic:
+    // x = 50 + (lng - center.lng) * 1000  => lng = center.lng + (x - 50) / 1000
+    // y = 50 - (lat - center.lat) * 1000  => lat = center.lat - (y - 50) / 1000
+    
+    const newLng = center.lng + (x - 50) / 1000;
+    const newLat = center.lat - (y - 50) / 1000;
+    
+    onMapClick(newLat, newLng);
+  };
+
   return (
-    <div className="w-full h-full bg-[#050505] relative overflow-hidden flex items-center justify-center">
+    <div 
+      className="w-full h-full bg-[#f8fafc] relative overflow-hidden flex items-center justify-center cursor-crosshair"
+      onClick={handleBackgroundClick}
+    >
       {/* Background Map Grid Effect */}
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:30px_30px]" />
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:40px_40px]" />
+      <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] [background-size:80px_80px]" />
       
       {/* The "Map" Surface */}
       <div className="relative w-full h-full">
@@ -42,12 +63,12 @@ export function MapView({ workers, center, onWorkerClick }: MapViewProps) {
                 {/* Marker Pin */}
                 <div className="flex flex-col items-center">
                    <div className="relative">
-                      <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1 shadow-2xl group-hover:border-blue-500/50 transition-all">
-                        <div className="w-full h-full bg-gray-900 rounded-[14px] overflow-hidden flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 p-1 shadow-xl group-hover:border-blue-500 transition-all">
+                        <div className="w-full h-full bg-slate-100 rounded-[14px] overflow-hidden flex items-center justify-center">
                            {worker.photoUrl ? (
                              <img src={worker.photoUrl} alt="" className="w-full h-full object-cover" />
                            ) : (
-                             <span className="text-white font-bold">{worker.user.name.charAt(0)}</span>
+                             <span className="text-slate-600 font-bold">{worker.user.name.charAt(0)}</span>
                            )}
                         </div>
                       </div>
@@ -67,12 +88,12 @@ export function MapView({ workers, center, onWorkerClick }: MapViewProps) {
                    </div>
                    
                    {/* Name Tag */}
-                   <div className="mt-2 px-2 py-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg text-[10px] font-bold text-white shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                   <div className="mt-2 px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                       {worker.user.name}
                    </div>
 
                    {/* Pointer */}
-                   <div className="w-px h-4 bg-gradient-to-b from-white/20 to-transparent" />
+                   <div className="w-px h-4 bg-gradient-to-b from-slate-300 to-transparent" />
                 </div>
               </div>
             </button>
@@ -93,11 +114,11 @@ export function MapView({ workers, center, onWorkerClick }: MapViewProps) {
 
       {/* Map Controls (Simulated) */}
       <div className="absolute right-6 bottom-6 flex flex-col gap-2 z-30">
-        <button className="w-12 h-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-all">+</button>
-        <button className="w-12 h-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-all">-</button>
+        <button className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-all shadow-sm">+</button>
+        <button className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-all shadow-sm">-</button>
       </div>
 
-      <div className="absolute left-6 bottom-6 px-4 py-2 bg-[#0a0a0a]/80 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-bold text-gray-500 tracking-widest uppercase z-30">
+      <div className="absolute left-6 bottom-6 px-4 py-2 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-400 tracking-widest uppercase z-30 shadow-sm">
         Live AI Network Tracking
       </div>
     </div>

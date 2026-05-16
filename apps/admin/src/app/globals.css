@@ -1,5 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@layer components {
+  /* Google Maps Premium Overrides - RESTORED OVERLAYS TO FIX WHITE SCREEN */
+  .gm-style-iw {
+    border-radius: 20px !important;
+    padding: 0 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2) !important;
+  }
+  .gm-style-iw-d {
+    overflow: hidden !important;
+  }
+  .gm-style-iw button[aria-label="Close"] {
+    top: 8px !important;
+    right: 8px !important;
+  }
+}
+
 @source "../../packages/ui/src";
 
 :root {

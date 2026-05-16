@@ -45,7 +45,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const { logout } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +56,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      const response = await api.post('/auth/register', {
+      await api.post('/auth/register', {
         mobileNumber,
         gender,
         password,
@@ -65,8 +65,7 @@ export default function RegisterPage() {
         isGroupLeader,
         groupSize,
       });
-      // const { user, access_token } = response.data;
-      // setAuth(user, access_token);
+      logout(); // Clear any existing session before redirecting to login
       router.push('/auth/login?registered=true');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');

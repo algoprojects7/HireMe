@@ -272,15 +272,17 @@ export function Hero() {
                     </div>
                   ))}
                 </div>
-                <button className="w-full mt-2 bg-[#22c55e] text-white text-[10px] font-bold py-1.5 rounded-lg">
-                  View All Jobs
-                </button>
+                <Link href="/search" className="block w-full mt-2">
+                  <button className="w-full bg-[#22c55e] text-white text-[10px] font-bold py-1.5 rounded-lg transition-colors hover:bg-[#1db053]">
+                    View All Jobs
+                  </button>
+                </Link>
               </div>
             </div>
 
             {/* Nearby Jobs floating tag */}
-            <div className="absolute right-8 top-8 z-20">
-              <div className="bg-white rounded-xl shadow-lg px-3 py-2 flex items-center gap-2">
+            <Link href="/search" className="absolute right-8 top-8 z-20 transition-transform hover:scale-105 active:scale-95">
+              <div className="bg-white rounded-xl shadow-lg px-3 py-2 flex items-center gap-2 cursor-pointer">
                 <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8511a" strokeWidth="2">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -289,7 +291,7 @@ export function Hero() {
                 </div>
                 <span className="text-[10px] font-bold text-gray-700">Nearby Jobs</span>
               </div>
-            </div>
+            </Link>
 
             {/* Wallet Card */}
             <div className="absolute right-0 bottom-8 z-20 animate-float" style={{ animationDelay: "1.5s" }}>
