@@ -49,7 +49,7 @@ export default function WorkerDashboard() {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           }).catch(err => console.error('Background tracking failed', err));
-        });
+        }, (err) => console.warn(err), { enableHighAccuracy: true, timeout: 10000 });
       }, 60000);
     }
     return () => clearInterval(interval);
@@ -82,7 +82,8 @@ export default function WorkerDashboard() {
           (error) => {
             console.warn("Geolocation failed, using default", error);
             updateStatus();
-          }
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
         );
       } else {
         updateStatus();
