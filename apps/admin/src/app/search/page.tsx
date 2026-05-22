@@ -84,6 +84,12 @@ function SearchPageContent() {
   const [selectedSkill, setSelectedSkill] = useState('');
   const [workDuration, setWorkDuration] = useState('Hourly'); // Hourly, 6 Hours, Full Day, Emergency
   const [mapCenter, setMapCenter] = useState({ lat: 26.1456, lng: 91.6789 });
+
+  // AI Search States
+  const [searchMode, setSearchMode] = useState<'standard' | 'ai'>('standard');
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiExtractedInfo, setAiExtractedInfo] = useState<any>(null);
   
   // UI States
   const [selectedWorker, setSelectedWorker] = useState<any>(null);
@@ -241,6 +247,48 @@ function SearchPageContent() {
     // Automatically maximize/restore bottom sheet after query
     if (isMobile) {
       setBottomSheetState('half');
+    }
+  };
+
+  const handleAISearch = async () => {
+    if (!aiQuery.trim()) return;
+    setAiLoading(true);
+    setAiExtractedInfo(null);
+    try {
+      const res = await api.post('/ai/search', { query: aiQuery });
+      if (res.data && res.data.success) {
+        setWorkers(res.data.workers || []);
+        setAiExtractedInfo(res.data.extracted);
+        
+        // Match center lat/lng if the location was matched by AI
+        if (res.data.extracted?.matchedArea) {
+          const { lat, lng } = res.data.extracted.matchedArea;
+          setMapCenter({ lat, lng });
+        }
+        
+        // Also update standard search fields so user can transition back/inspect details
+        if (res.data.extracted?.skill) {
+          const matchedSkill = skills.find((s: any) => s.name.toLowerCase().includes(res.data.extracted.skill.toLowerCase()));
+          if (matchedSkill) {
+            setSelectedSkill(matchedSkill.id);
+            setSkillSearch(matchedSkill.name);
+          } else {
+            setSelectedSkill('');
+            setSkillSearch(res.data.extracted.skill);
+          }
+        }
+        if (res.data.extracted?.location) {
+          setLocationQuery(res.data.extracted.location);
+        }
+      }
+    } catch (err) {
+      console.error('AI search failed:', err);
+      alert('AI search is temporarily unavailable. Using standard search fallback.');
+    } finally {
+      setAiLoading(false);
+      if (isMobile) {
+        setBottomSheetState('half');
+      }
     }
   };
 
@@ -403,13 +451,16 @@ function SearchPageContent() {
     // Sort cheapest first
     if (activeFilters.has('Cheapest')) {
       result.sort((a, b) => a.baseRate - b.baseRate);
+    } else if (searchMode === 'ai') {
+      // Sort by AI Score descending
+      result.sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0));
     } else {
       // Default: sort by proximity (closest first)
       result.sort((a, b) => a.distance - b.distance);
     }
 
     return result;
-  }, [workers, selectedSkill, skillSearch, mapCenter, activeFilters]);
+  }, [workers, selectedSkill, skillSearch, mapCenter, activeFilters, searchMode]);
 
   // Snaps bottom sheet state cycles
   const handleSwipeToggle = () => {
@@ -520,185 +571,269 @@ function SearchPageContent() {
         
         {/* 2. FLOATING SEARCH PANEL */}
         <div className="w-full max-w-6xl mx-auto px-4 md:px-6 pt-4 pb-2 z-40">
-          <div className="flex flex-col md:flex-row gap-3 p-3 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-3xl shadow-xl">
-            
-            {/* Field A: Location Input */}
-            <div className="flex-1 relative border-b md:border-b-0 md:border-r border-slate-100 md:pr-2">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500" size={18} />
-              <input 
-                type="text" 
-                placeholder="Where do you need help?" 
-                value={locationQuery}
-                onFocus={() => setShowLocationHints(true)}
-                onChange={(e) => setLocationQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                     const bestMatch = combinedSuggestions[0];
-                     if (bestMatch) handleSelectLocation(bestMatch);
-                     else handleSearch();
-                  }
-                }}
-                className="w-full bg-transparent pl-11 pr-10 py-3 text-sm font-extrabold text-slate-800 placeholder:text-slate-400 focus:outline-none"
-              />
-              <button 
-                onClick={handleGPSDetect}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
-                title="Use Current Location"
-              >
-                <Compass size={16} />
-              </button>
-
-              <AnimatePresence>
-                {showLocationHints && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-[60]"
-                  >
-                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles size={12} className="text-blue-600" />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Suggested Areas</span>
-                      </div>
-                      <button onClick={() => setShowLocationHints(false)} className="text-slate-400 hover:text-slate-600">
-                        <X size={12} />
-                      </button>
-                    </div>
-                    <div className="max-h-60 overflow-y-auto py-1">
-                      {combinedSuggestions.map((loc, idx) => (
-                        <button 
-                          key={idx}
-                          onMouseDown={(e) => { 
-                            e.preventDefault();
-                            handleSelectLocation(loc);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-600 flex flex-col justify-center border-b border-slate-50 last:border-0"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Navigation size={12} className={loc.isLocal ? "text-blue-500" : "text-purple-500"} />
-                            <span className="font-extrabold text-slate-800">{loc.name}</span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 pl-5">{loc.description}</span>
-                        </button>
-                      ))}
-                      {combinedSuggestions.length === 0 && (
-                        <div className="px-4 py-3 text-xs text-slate-400 italic">Type to search local areas...</div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Field B: Skill Selector */}
-            <div className="flex-1 relative border-b md:border-b-0 md:border-r border-slate-100 md:px-2">
-              <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
-              <input 
-                type="text" 
-                placeholder="What skill are you seeking?" 
-                value={skillSearch}
-                onFocus={() => setShowSkillHints(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSearch();
-                }}
-                onChange={(e) => {
-                  setSkillSearch(e.target.value);
-                  if (e.target.value === '') setSelectedSkill('');
-                }}
-                className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-extrabold text-slate-800 placeholder:text-slate-400 focus:outline-none"
-              />
-              
-              <AnimatePresence>
-                {showSkillHints && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-[60]"
-                  >
-                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles size={12} className="text-purple-600" />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">AI Skill Intelligence</span>
-                      </div>
-                      <button onClick={() => setShowSkillHints(false)} className="text-slate-400 hover:text-slate-600">
-                        <X size={12} />
-                      </button>
-                    </div>
-                    <div className="max-h-60 overflow-y-auto py-1">
-                      <button 
-                        onMouseDown={(e) => { 
-                          e.preventDefault();
-                          setSelectedSkill(''); 
-                          setSkillSearch('All Workers'); 
-                          setShowSkillHints(false); 
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-700 font-extrabold flex items-center gap-2 border-b border-slate-50"
-                      >
-                        <Layers size={14} className="text-blue-500" />
-                        All Professions
-                      </button>
-                      {filteredSkills.map(skill => (
-                        <button 
-                          key={skill.id}
-                          onMouseDown={(e) => { 
-                            e.preventDefault();
-                            setSelectedSkill(skill.id); 
-                            setSkillSearch(skill.name); 
-                            setShowSkillHints(false); 
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-600 flex items-center gap-2 border-b border-slate-50 last:border-0"
-                        >
-                          <Zap size={14} className="text-amber-500" />
-                          {skill.name}
-                        </button>
-                      ))}
-                      <button 
-                        onMouseDown={(e) => { 
-                          e.preventDefault();
-                          setSelectedSkill('others'); 
-                          setSkillSearch('Others'); 
-                          setShowSkillHints(false); 
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-600 flex items-center gap-2"
-                      >
-                        <Zap size={14} className="text-purple-500" />
-                        Others
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Field C: Work Duration Dropdown */}
-            <div className="flex-1 relative md:px-2 flex items-center">
-              <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <select 
-                value={workDuration}
-                onChange={(e) => setWorkDuration(e.target.value)}
-                className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-extrabold text-slate-700 focus:outline-none appearance-none cursor-pointer"
-              >
-                <option value="Hourly">Hourly Rate</option>
-                <option value="6 Hours">6 Hours Package</option>
-                <option value="Full Day">Full Day Slot</option>
-                <option value="Emergency">Emergency Quick Hire</option>
-              </select>
-              <div className="absolute right-4 pointer-events-none text-slate-400">
-                ▼
-              </div>
-            </div>
-
-            {/* Submit Button */}
+          {/* Search Mode Toggle */}
+          <div className="flex items-center gap-3 mb-3 pl-2">
             <button 
-              onClick={handleSearch}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-95 shrink-0"
+              onClick={() => {
+                setSearchMode('standard');
+                setAiExtractedInfo(null);
+              }}
+              className={`text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+                searchMode === 'standard' 
+                  ? 'text-blue-600 bg-blue-50 border border-blue-100 shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-700 bg-transparent border border-transparent'
+              }`}
             >
-              <SearchIcon size={16} />
-              Search
+              <SlidersHorizontal size={12} />
+              Standard Search
+            </button>
+            <button 
+              onClick={() => setSearchMode('ai')} 
+              className={`text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+                searchMode === 'ai' 
+                  ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm font-extrabold' 
+                  : 'text-slate-500 hover:text-slate-700 bg-transparent border border-transparent'
+              }`}
+            >
+              <Sparkles size={12} className="text-purple-500 animate-pulse" />
+              AI Smart Search
             </button>
           </div>
+
+          <div className="flex flex-col md:flex-row gap-3 p-3 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-3xl shadow-xl">
+            {searchMode === 'standard' ? (
+              <>
+                {/* Field A: Location Input */}
+                <div className="flex-1 relative border-b md:border-b-0 md:border-r border-slate-100 md:pr-2">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="Where do you need help?" 
+                    value={locationQuery}
+                    onFocus={() => setShowLocationHints(true)}
+                    onChange={(e) => setLocationQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                         const bestMatch = combinedSuggestions[0];
+                         if (bestMatch) handleSelectLocation(bestMatch);
+                         else handleSearch();
+                      }
+                    }}
+                    className="w-full bg-transparent pl-11 pr-10 py-3 text-sm font-extrabold text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                  />
+                  <button 
+                    onClick={handleGPSDetect}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
+                    title="Use Current Location"
+                  >
+                    <Compass size={16} />
+                  </button>
+
+                  <AnimatePresence>
+                    {showLocationHints && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-[60]"
+                      >
+                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-blue-600" />
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Suggested Areas</span>
+                          </div>
+                          <button onClick={() => setShowLocationHints(false)} className="text-slate-400 hover:text-slate-600">
+                            <X size={12} />
+                          </button>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto py-1">
+                          {combinedSuggestions.map((loc, idx) => (
+                            <button 
+                              key={idx}
+                              onMouseDown={(e) => { 
+                                e.preventDefault();
+                                handleSelectLocation(loc);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-600 flex flex-col justify-center border-b border-slate-50 last:border-0"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Navigation size={12} className={loc.isLocal ? "text-blue-500" : "text-purple-500"} />
+                                <span className="font-extrabold text-slate-800">{loc.name}</span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 pl-5">{loc.description}</span>
+                            </button>
+                          ))}
+                          {combinedSuggestions.length === 0 && (
+                            <div className="px-4 py-3 text-xs text-slate-400 italic">Type to search local areas...</div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Field B: Skill Selector */}
+                <div className="flex-1 relative border-b md:border-b-0 md:border-r border-slate-100 md:px-2">
+                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="What skill are you seeking?" 
+                    value={skillSearch}
+                    onFocus={() => setShowSkillHints(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSearch();
+                    }}
+                    onChange={(e) => {
+                      setSkillSearch(e.target.value);
+                      if (e.target.value === '') setSelectedSkill('');
+                    }}
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-extrabold text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                  />
+                  
+                  <AnimatePresence>
+                    {showSkillHints && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-[60]"
+                      >
+                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-purple-600" />
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">AI Skill Intelligence</span>
+                          </div>
+                          <button onClick={() => setShowSkillHints(false)} className="text-slate-400 hover:text-slate-600">
+                            <X size={12} />
+                          </button>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto py-1">
+                          <button 
+                            onMouseDown={(e) => { 
+                              e.preventDefault();
+                              setSelectedSkill(''); 
+                              setSkillSearch('All Workers'); 
+                              setShowSkillHints(false); 
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-700 font-extrabold flex items-center gap-2 border-b border-slate-50"
+                          >
+                            <Layers size={14} className="text-blue-500" />
+                            All Professions
+                          </button>
+                          {filteredSkills.map(skill => (
+                            <button 
+                              key={skill.id}
+                              onMouseDown={(e) => { 
+                                e.preventDefault();
+                                setSelectedSkill(skill.id); 
+                                setSkillSearch(skill.name); 
+                                setShowSkillHints(false); 
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-600 flex items-center gap-2 border-b border-slate-50 last:border-0"
+                            >
+                              <Zap size={14} className="text-amber-500" />
+                              {skill.name}
+                            </button>
+                          ))}
+                          <button 
+                            onMouseDown={(e) => { 
+                              e.preventDefault();
+                              setSelectedSkill('others'); 
+                              setSkillSearch('Others'); 
+                              setShowSkillHints(false); 
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-xs text-slate-600 flex items-center gap-2"
+                          >
+                            <Zap size={14} className="text-purple-500" />
+                            Others
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Field C: Work Duration Dropdown */}
+                <div className="flex-1 relative md:px-2 flex items-center">
+                  <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <select 
+                    value={workDuration}
+                    onChange={(e) => setWorkDuration(e.target.value)}
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-extrabold text-slate-700 focus:outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="Hourly">Hourly Rate</option>
+                    <option value="6 Hours">6 Hours Package</option>
+                    <option value="Full Day">Full Day Slot</option>
+                    <option value="Emergency">Emergency Quick Hire</option>
+                  </select>
+                  <div className="absolute right-4 pointer-events-none text-slate-400">
+                    ▼
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <button 
+                  onClick={handleSearch}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-95 shrink-0"
+                >
+                  <SearchIcon size={16} />
+                  Search
+                </button>
+              </>
+            ) : (
+              <>
+                {/* AI Query Input */}
+                <div className="flex-1 relative flex items-center">
+                  <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-500 animate-pulse" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="Describe what you need (e.g. 'I need a verified plumber near Paltan Bazar' or 'highly rated electrician in Beltola')" 
+                    value={aiQuery}
+                    onChange={(e) => setAiQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAISearch();
+                    }}
+                    className="w-full bg-transparent pl-11 pr-4 py-3 text-sm font-extrabold text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                  />
+                </div>
+                
+                {/* AI Search Submit Button */}
+                <button 
+                  onClick={handleAISearch}
+                  disabled={aiLoading}
+                  className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-400 text-white px-8 py-3 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-600/20 active:scale-95 shrink-0"
+                >
+                  {aiLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                  {aiLoading ? 'Analyzing Query...' : 'AI Search'}
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* AI Extracted Info Badge Banner */}
+          {searchMode === 'ai' && aiExtractedInfo && (
+            <div className="mt-3 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-purple-600 animate-bounce" />
+                <span className="text-xs text-slate-600 font-extrabold">
+                  AI extracted: <span className="text-purple-700 bg-purple-100/50 px-2 py-0.5 rounded-lg border border-purple-200/50 font-black">{aiExtractedInfo.skill || 'Any skill'}</span>
+                  {aiExtractedInfo.location && (
+                    <> in <span className="text-indigo-700 bg-indigo-100/50 px-2 py-0.5 rounded-lg border border-indigo-200/50 font-black">{aiExtractedInfo.location}</span></>
+                  )}
+                </span>
+              </div>
+              {aiExtractedInfo.matchedArea && (
+                <div className="flex items-center gap-1 text-[10px] text-indigo-500 font-black uppercase tracking-wider">
+                  <MapPin size={10} />
+                  Map centered on {aiExtractedInfo.matchedArea.name}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 3. SCROLLABLE FILTER CHIPS ROW */}
@@ -842,6 +977,12 @@ function SearchPageContent() {
                       <p className="text-[9px] text-slate-400 font-bold mt-0.5">
                         {workDuration === '6 Hours' ? 'per 6 hrs' : workDuration === 'Full Day' ? 'per day' : 'per hour'}
                       </p>
+                      {searchMode === 'ai' && worker.aiScore !== undefined && (
+                        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-50 border border-purple-100 text-purple-700 rounded-lg text-[9px] font-black mt-1.5">
+                          <Sparkles size={8} className="text-purple-500 animate-pulse" />
+                          {Math.round(worker.aiScore * 100)}% Match
+                        </div>
+                      )}
                     </div>
                   </div>
 
