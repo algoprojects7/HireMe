@@ -421,7 +421,7 @@ function SearchPageContent() {
       result = result.filter(w => w.id.length % 2 === 0);
     } else if (selectedSkill) {
       result = result.filter(w => w.skills.some((s: any) => s.skillId === selectedSkill));
-    } else if (skillSearch) {
+    } else if (skillSearch && skillSearch.toLowerCase() !== 'all workers' && skillSearch.toLowerCase() !== 'all professions') {
       result = result.filter(w => w.skills.some((s: any) => s.skill.name.toLowerCase().includes(skillSearch.toLowerCase())));
     }
 
