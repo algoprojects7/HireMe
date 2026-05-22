@@ -1006,7 +1006,7 @@ function SearchPageContent() {
                   </div>
 
                   {/* Action row */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 md:grid-cols-2 gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleBookNow(worker); }}
                       className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-[10px] sm:text-xs transition-all active:scale-95 shadow-md shadow-blue-500/10 flex items-center justify-center gap-1"
@@ -1023,7 +1023,7 @@ function SearchPageContent() {
                         }
                         window.location.href = `tel:${worker.user?.phone || '9999999999'}`;
                       }}
-                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-[10px] sm:text-xs transition-all active:scale-95 shadow-md shadow-emerald-500/10 flex items-center justify-center gap-1"
+                      className="md:hidden w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-[10px] sm:text-xs transition-all active:scale-95 shadow-md shadow-emerald-500/10 flex items-center justify-center gap-1"
                     >
                       <Phone size={12} />
                       <span>Call Now</span>
