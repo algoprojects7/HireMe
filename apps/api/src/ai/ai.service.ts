@@ -106,11 +106,20 @@ export class AIService {
         }
       }
     }
+
+    // 4. Extract workerType from keywords
+    let workerType: 'all' | 'individual' | 'leader' = 'all';
+    if (lowerQuery.includes('leader') || lowerQuery.includes('team') || lowerQuery.includes('group') || lowerQuery.includes('crew') || lowerQuery.includes('contractor')) {
+      workerType = 'leader';
+    } else if (lowerQuery.includes('individual') || lowerQuery.includes('single') || lowerQuery.includes('lone') || lowerQuery.includes('one')) {
+      workerType = 'individual';
+    }
     
     return {
       skill: skillName,
       location: locationName,
-      matchedArea
+      matchedArea,
+      workerType
     };
   }
 
@@ -134,11 +143,11 @@ export class AIService {
     try {
       result = await this.callGemini(query);
     } catch (err) {
-      console.warn('Gemini AI failed, falling back to Groq...', err.message);
+      console.warn('Gemini AI failed, falling back to Ollama...', err.message);
       try {
-        result = await this.callGroq(query);
+        result = await this.callOllama(query);
       } catch (err2) {
-        console.error('Groq AI also failed:', err2.message);
+        console.error('Ollama AI also failed:', err2.message);
       }
     }
 
@@ -156,7 +165,8 @@ export class AIService {
     const workers = await this.recommendWorkers({
       skillName: fallback.skill || undefined,
       lat: fallback.matchedArea?.lat,
-      lng: fallback.matchedArea?.lng
+      lng: fallback.matchedArea?.lng,
+      workerType: fallback.workerType
     });
     return {
       success: true,
@@ -188,32 +198,32 @@ export class AIService {
     return this.processAIResponse(text, query);
   }
 
-  private async callGroq(query: string) {
-    const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-    if (!apiKey) return null;
-
-    const url = 'https://api.groq.com/openai/v1/chat/completions';
+  private async callOllama(query: string) {
+    const baseUrl = process.env.OLLAMA_BASE_URL || 'http://72.61.235.114:11434';
+    const model = process.env.OLLAMA_MODEL || 'qwen2.5:3b';
+    const url = `${baseUrl}/api/chat`;
     const prompt = this.getSystemPrompt(query);
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        response_format: { type: "json_object" }
+        stream: false,
+        options: {
+          temperature: 0.1
+        },
+        format: 'json'
       })
     });
 
-    if (!response.ok) throw new Error(`Groq status ${response.status}`);
+    if (!response.ok) throw new Error(`Ollama status ${response.status}`);
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
+    const text = data.message?.content || '';
     return this.processAIResponse(text, query);
   }
 
@@ -224,11 +234,15 @@ Analyze the user's search query: "${query}"
 Extract:
 1. "skill": The specific service or profession requested (e.g. "Plumber", "Electrician", "Carpenter", "Mason", "Cleaning"). If no specific skill/profession is requested, return null.
 2. "location": The neighborhood or area name (e.g. "Hatigaon", "Jalukbari", "Beltola", "Zoo Road", etc.). If no location is mentioned, return null.
+3. "workerType": Check if the query specifies individual worker, team, group leader, contractor etc. Possible values:
+   - "individual": if searching for a single worker, individual, lone worker.
+   - "leader": if searching for group leader, team, group, crew, contractor, boss.
+   - "all": if not specified or unspecified.
 
 Return ONLY a JSON object. No markdown, no code blocks, no explanation.
-Example 1: "need an electrician near Beltola" -> {"skill": "Electrician", "location": "Beltola"}
-Example 2: "need a verified worker near Jalukbari" -> {"skill": null, "location": "Jalukbari"}
-Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
+Example 1: "need an electrician near Beltola" -> {"skill": "Electrician", "location": "Beltola", "workerType": "all"}
+Example 2: "need a plumber group leader near Jalukbari" -> {"skill": "Plumber", "location": "Jalukbari", "workerType": "leader"}
+Example 3: "need individual carpenter" -> {"skill": "Carpenter", "location": null, "workerType": "individual"}`;
   }
 
   private async processAIResponse(text: string, originalQuery: string) {
@@ -238,6 +252,7 @@ Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
       
       const skillName = extracted.skill;
       const locationName = extracted.location;
+      const workerType = extracted.workerType || 'all';
       
       let lat: number | undefined = undefined;
       let lng: number | undefined = undefined;
@@ -257,7 +272,8 @@ Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
         skillName: skillName || undefined,
         lat,
         lng,
-        limit: 10
+        limit: 10,
+        workerType
       });
 
       return {
@@ -265,7 +281,8 @@ Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
         extracted: {
           skill: skillName || null,
           location: locationName || null,
-          matchedArea: locationName && lat ? { name: locationName, lat, lng } : null
+          matchedArea: locationName && lat ? { name: locationName, lat, lng } : null,
+          workerType
         },
         workers
       };
@@ -275,7 +292,8 @@ Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
       const workers = await this.recommendWorkers({
         skillName: fallback.skill || undefined,
         lat: fallback.matchedArea?.lat,
-        lng: fallback.matchedArea?.lng
+        lng: fallback.matchedArea?.lng,
+        workerType: fallback.workerType
       });
       return {
         success: true,
@@ -298,8 +316,9 @@ Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
     lng?: number;
     maxDistanceKm?: number;
     limit?: number;
+    workerType?: 'all' | 'individual' | 'leader';
   }) {
-    const { skillId, skillName, lat, lng, maxDistanceKm = 15, limit = 10 } = params;
+    const { skillId, skillName, lat, lng, maxDistanceKm = 15, limit = 10, workerType = 'all' } = params;
 
     // Fetch all available workers
     const workers = await this.db.client.worker.findMany({
@@ -328,6 +347,13 @@ Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
     });
 
     let filtered = workers;
+
+    // Filter by workerType
+    if (workerType === 'individual') {
+      filtered = filtered.filter(w => !w.isGroupLeader);
+    } else if (workerType === 'leader') {
+      filtered = filtered.filter(w => w.isGroupLeader);
+    }
     
     // Filter by skillId or skillName
     if (skillId) {

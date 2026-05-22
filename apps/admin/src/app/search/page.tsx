@@ -12,6 +12,7 @@ import {
   Sparkles, 
   Bell, 
   User, 
+  Users,
   ShieldCheck, 
   Star, 
   MessageSquare, 
@@ -87,6 +88,7 @@ function SearchPageContent() {
 
   // AI Search States
   const [searchMode, setSearchMode] = useState<'standard' | 'ai'>('standard');
+  const [workerTypeFilter, setWorkerTypeFilter] = useState<'all' | 'individual' | 'leader'>('all');
   const [aiQuery, setAiQuery] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiExtractedInfo, setAiExtractedInfo] = useState<any>(null);
@@ -285,6 +287,11 @@ function SearchPageContent() {
         } else {
           setLocationQuery('');
         }
+        if (res.data.extracted?.workerType) {
+          setWorkerTypeFilter(res.data.extracted.workerType);
+        } else {
+          setWorkerTypeFilter('all');
+        }
       }
     } catch (err) {
       console.error('AI search failed:', err);
@@ -432,6 +439,13 @@ function SearchPageContent() {
       }
     }
 
+    // Worker Type Filter (apply everywhere or specifically to refine list)
+    if (workerTypeFilter === 'individual') {
+      result = result.filter(w => !w.isGroupLeader);
+    } else if (workerTypeFilter === 'leader') {
+      result = result.filter(w => w.isGroupLeader);
+    }
+
     // Chip Filters
     if (activeFilters.has('Nearby')) {
       result = result.filter(w => w.distance <= 4.0); // Within 4km
@@ -467,7 +481,7 @@ function SearchPageContent() {
     }
 
     return result;
-  }, [workers, selectedSkill, skillSearch, mapCenter, activeFilters, searchMode]);
+  }, [workers, selectedSkill, skillSearch, mapCenter, activeFilters, searchMode, workerTypeFilter]);
 
   // Snaps bottom sheet state cycles
   const handleSwipeToggle = () => {
@@ -578,33 +592,72 @@ function SearchPageContent() {
         
         {/* 2. FLOATING SEARCH PANEL */}
         <div className="w-full max-w-6xl mx-auto px-4 md:px-6 pt-4 pb-2 z-40">
-          {/* Search Mode Toggle */}
-          <div className="flex items-center gap-3 mb-3 pl-2">
-            <button 
-              onClick={() => {
-                setSearchMode('standard');
-                setAiExtractedInfo(null);
-              }}
-              className={`text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
-                searchMode === 'standard' 
-                  ? 'text-blue-600 bg-blue-50 border border-blue-100 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700 bg-transparent border border-transparent'
-              }`}
-            >
-              <SlidersHorizontal size={12} />
-              Standard Search
-            </button>
-            <button 
-              onClick={() => setSearchMode('ai')} 
-              className={`text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
-                searchMode === 'ai' 
-                  ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm font-extrabold' 
-                  : 'text-slate-500 hover:text-slate-700 bg-transparent border border-transparent'
-              }`}
-            >
-              <Sparkles size={12} className="text-purple-500 animate-pulse" />
-              AI Smart Search
-            </button>
+          {/* Toggles Container */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3 px-2">
+            {/* Search Mode Toggle */}
+            <div className="flex items-center gap-1 bg-slate-100/85 p-1 rounded-full border border-slate-200/50 backdrop-blur shadow-sm">
+              <button 
+                onClick={() => {
+                  setSearchMode('standard');
+                  setAiExtractedInfo(null);
+                }}
+                className={`text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 px-3.5 py-1.5 rounded-full ${
+                  searchMode === 'standard' 
+                    ? 'text-blue-600 bg-white border border-slate-200/20 shadow-sm font-black' 
+                    : 'text-slate-500 hover:text-slate-750 bg-transparent border border-transparent'
+                }`}
+              >
+                <SlidersHorizontal size={12} />
+                Standard Search
+              </button>
+              <button 
+                onClick={() => setSearchMode('ai')} 
+                className={`text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 px-3.5 py-1.5 rounded-full ${
+                  searchMode === 'ai' 
+                    ? 'text-purple-600 bg-white border border-slate-200/20 shadow-sm font-black' 
+                    : 'text-slate-500 hover:text-slate-755 bg-transparent border border-transparent'
+                }`}
+              >
+                <Sparkles size={12} className="text-purple-500 animate-pulse" />
+                AI Smart Search
+              </button>
+            </div>
+
+            {/* Worker Type Toggle */}
+            <div className="flex items-center gap-1 bg-slate-100/85 p-1 rounded-full border border-slate-200/50 backdrop-blur shadow-sm">
+              <button 
+                onClick={() => setWorkerTypeFilter('all')} 
+                className={`text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 px-3 py-1.5 rounded-full ${
+                  workerTypeFilter === 'all' 
+                    ? 'text-indigo-600 bg-white border border-slate-200/20 shadow-sm font-black' 
+                    : 'text-slate-500 hover:text-slate-700 bg-transparent border border-transparent'
+                }`}
+              >
+                All Workers
+              </button>
+              <button 
+                onClick={() => setWorkerTypeFilter('individual')} 
+                className={`text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 px-3 py-1.5 rounded-full ${
+                  workerTypeFilter === 'individual' 
+                    ? 'text-emerald-600 bg-white border border-slate-200/20 shadow-sm font-black' 
+                    : 'text-slate-500 hover:text-slate-700 bg-transparent border border-transparent'
+                }`}
+              >
+                <User size={12} />
+                Individual
+              </button>
+              <button 
+                onClick={() => setWorkerTypeFilter('leader')} 
+                className={`text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 px-3 py-1.5 rounded-full ${
+                  workerTypeFilter === 'leader' 
+                    ? 'text-purple-600 bg-white border border-slate-200/20 shadow-sm font-black' 
+                    : 'text-slate-500 hover:text-slate-700 bg-transparent border border-transparent'
+                }`}
+              >
+                <Users size={12} />
+                Group Leader
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col md:flex-row gap-3 p-3 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-3xl shadow-xl">
