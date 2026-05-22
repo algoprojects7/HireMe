@@ -1006,20 +1006,34 @@ function SearchPageContent() {
                   </div>
 
                   {/* Action row */}
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleBookNow(worker); }}
-                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs transition-all active:scale-95 shadow-md shadow-blue-500/10 flex items-center justify-center gap-1"
+                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-[10px] sm:text-xs transition-all active:scale-95 shadow-md shadow-blue-500/10 flex items-center justify-center gap-1"
                     >
-                      <Zap size={13} />
-                      Hire Now
+                      <Zap size={12} />
+                      <span>Hire Now</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!user) {
+                          router.push('/auth/login?redirect=/search');
+                          return;
+                        }
+                        window.location.href = `tel:${worker.user?.phone || '9999999999'}`;
+                      }}
+                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-[10px] sm:text-xs transition-all active:scale-95 shadow-md shadow-emerald-500/10 flex items-center justify-center gap-1"
+                    >
+                      <Phone size={12} />
+                      <span>Call Now</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setChatModalWorker(worker); }}
-                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1 border border-slate-200/50"
+                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-[10px] sm:text-xs transition-all active:scale-95 flex items-center justify-center gap-1 border border-slate-200/50"
                     >
-                      <MessageSquare size={13} />
-                      Chat
+                      <MessageSquare size={12} />
+                      <span>Chat</span>
                     </button>
                   </div>
                 </div>
