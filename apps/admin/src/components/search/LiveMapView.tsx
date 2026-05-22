@@ -58,7 +58,7 @@ function MapClickHandler({ onClick }: { onClick: (lat: number, lng: number) => v
     });
     return () => {
       if (listener) {
-        google.maps.event.removeListener(listener);
+        listener.remove();
       }
     };
   }, [map, onClick]);
@@ -157,7 +157,7 @@ export default function LiveMapView({ workers, center, onWorkerClick, onMapClick
     });
     return () => {
       if (listener) {
-        google.maps.event.removeListener(listener);
+        listener.remove();
       }
     };
   }, [map]);
