@@ -8,6 +8,7 @@ import WorkerModal from '@/components/search/WorkerModal';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
+import { APIProvider, useMapsLibrary } from '@vis.gl/react-google-maps';
 
 const LiveMapView = dynamic(() => import('@/components/search/LiveMapView'), { 
   ssr: false,
@@ -19,6 +20,15 @@ const LiveMapView = dynamic(() => import('@/components/search/LiveMapView'), {
 });
 
 export default function MapSearchPage() {
+  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <SearchPageContent />
+    </APIProvider>
+  );
+}
+
+function SearchPageContent() {
   const [workers, setWorkers] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +41,59 @@ export default function MapSearchPage() {
   const [skillSearch, setSkillSearch] = useState('');
   const [showSkillHints, setShowSkillHints] = useState(false);
   const [showLocationHints, setShowLocationHints] = useState(false);
+
+/// <reference types="google.maps" />
+
+// Google Maps Libraries integration for resolving any location on the map
+  const placesLib = useMapsLibrary('places');
+  const geocodingLib = useMapsLibrary('geocoding');
+  const [autocompleteService, setAutocompleteService] = useState<any>(null);
+  const [geocoder, setGeocoder] = useState<any>(null);
+  const [googleSuggestions, setGoogleSuggestions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (placesLib) {
+      setAutocompleteService(new placesLib.AutocompleteService());
+    }
+  }, [placesLib]);
+
+  useEffect(() => {
+    if (geocodingLib) {
+      setGeocoder(new geocodingLib.Geocoder());
+    }
+  }, [geocodingLib]);
+
+  // Dynamic autocomplete query using Google Places API
+  useEffect(() => {
+    if (!autocompleteService || !locationQuery || locationQuery === 'Selected Area') {
+      setGoogleSuggestions([]);
+      return;
+    }
+
+    const delayDebounce = setTimeout(() => {
+      autocompleteService.getPlacePredictions(
+        {
+          input: locationQuery,
+          componentRestrictions: { country: 'in' }, // Restrict search to India
+        },
+        (predictions: any, status: any) => {
+          if (status === 'OK' && predictions) {
+            setGoogleSuggestions(
+              predictions.map((p: any) => ({
+                name: p.structured_formatting.main_text,
+                description: p.description,
+                placeId: p.place_id,
+              }))
+            );
+          } else {
+            setGoogleSuggestions([]);
+          }
+        }
+      );
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [locationQuery, autocompleteService]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,9 +115,24 @@ export default function MapSearchPage() {
 
   const handleSearch = () => {
     if (locationQuery) {
-      const area = findLocation(locationQuery);
+      // First try matching local Guwahati areas
+      const area = GUWAHATI_AREAS.find(a => a.name.toLowerCase() === locationQuery.toLowerCase());
       if (area) {
         setMapCenter({ lat: area.lat, lng: area.lng });
+      } else if (geocoder) {
+        // Resolve custom query via Google Geocoder
+        geocoder.geocode({ address: locationQuery, componentRestrictions: { country: 'in' } }, (results: any, status: any) => {
+          if (status === 'OK' && results?.[0]) {
+            const geometry = results[0].geometry;
+            if (geometry && geometry.location) {
+              setMapCenter({
+                lat: geometry.location.lat(),
+                lng: geometry.location.lng(),
+              });
+              setLocationQuery(results[0].formatted_address.split(',')[0]);
+            }
+          }
+        });
       }
     }
 
@@ -68,6 +146,44 @@ export default function MapSearchPage() {
 
     setShowSkillHints(false);
     setShowLocationHints(false);
+  };
+
+  const handleSelectLocation = (loc: any) => {
+    setLocationQuery(loc.name);
+    setShowLocationHints(false);
+
+    if (loc.lat && loc.lng) {
+      setMapCenter({ lat: loc.lat, lng: loc.lng });
+      return;
+    }
+
+    if (geocoder) {
+      if (loc.placeId) {
+        geocoder.geocode({ placeId: loc.placeId }, (results: any, status: any) => {
+          if (status === 'OK' && results?.[0]) {
+            const geometry = results[0].geometry;
+            if (geometry && geometry.location) {
+              setMapCenter({
+                lat: geometry.location.lat(),
+                lng: geometry.location.lng(),
+              });
+            }
+          }
+        });
+      } else if (loc.description) {
+        geocoder.geocode({ address: loc.description }, (results: any, status: any) => {
+          if (status === 'OK' && results?.[0]) {
+            const geometry = results[0].geometry;
+            if (geometry && geometry.location) {
+              setMapCenter({
+                lat: geometry.location.lat(),
+                lng: geometry.location.lng(),
+              });
+            }
+          }
+        });
+      }
+    }
   };
 
   // AI-based Fuzzy Search Algorithm
@@ -85,22 +201,30 @@ export default function MapSearchPage() {
     return qIdx === q.length;
   };
 
-  // AI Context: Only suggest skills and locations where providers actually exist
+  // AI Context: Only suggest skills where providers actually exist
   const availableSkillIds = new Set(workers.flatMap(w => w.skills?.map((s: any) => s.skillId) || []));
   const dynamicSkills = skills.filter(s => availableSkillIds.has(s.id));
-  
-  const isWorkerNearLocation = (loc: any) => {
-    return workers.some(w => {
-      if (!w.currentLat || !w.currentLng) return false;
-      const dLat = w.currentLat - loc.lat;
-      const dLng = w.currentLng - loc.lng;
-      return Math.sqrt(dLat*dLat + dLng*dLng) < 0.05; // Provider must be within ~5km radius
-    });
-  };
-  const dynamicLocations = GUWAHATI_AREAS.filter(loc => isWorkerNearLocation(loc));
+
+  // Local locations matched filter (no longer limited by worker proximity, so all predefined areas are selectable!)
+  const filteredLocalLocations = GUWAHATI_AREAS.filter(loc => smartSearch(locationQuery, loc.name));
+
+  const formattedLocalLocations = filteredLocalLocations.map(loc => ({
+    name: loc.name,
+    description: `${loc.name}, Guwahati, Assam`,
+    lat: loc.lat,
+    lng: loc.lng,
+    isLocal: true,
+  }));
+
+  // Combined suggestions: local matches + Google API predictions (to support searching any location)
+  const combinedSuggestions = [
+    ...formattedLocalLocations,
+    ...googleSuggestions.filter(g => 
+      !formattedLocalLocations.some(l => l.name.toLowerCase() === g.name.toLowerCase())
+    )
+  ];
 
   const filteredSkills = dynamicSkills.filter(s => smartSearch(skillSearch, s.name));
-  const filteredLocations = dynamicLocations.filter(loc => smartSearch(locationQuery, loc.name));
 
   const filteredWorkers = workers.filter(worker => {
     if (selectedSkill === 'others') return worker.id.length % 2 === 0;
@@ -135,11 +259,9 @@ export default function MapSearchPage() {
                   onChange={(e) => setLocationQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                       const bestMatch = filteredLocations[0];
+                       const bestMatch = combinedSuggestions[0];
                        if (bestMatch) {
-                         setMapCenter({ lat: bestMatch.lat, lng: bestMatch.lng });
-                         setLocationQuery(bestMatch.name);
-                         setShowLocationHints(false);
+                         handleSelectLocation(bestMatch);
                        } else {
                          handleSearch();
                        }
@@ -158,25 +280,26 @@ export default function MapSearchPage() {
                     >
                       <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 border-b border-gray-100 flex items-center gap-2">
                         <Sparkles size={14} className="text-blue-600" />
-                        <span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">AI Suggestions</span>
+                        <span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Suggestions</span>
                       </div>
                       <div className="max-h-60 overflow-y-auto py-1">
-                        {filteredLocations.map((loc, idx) => (
+                        {combinedSuggestions.map((loc, idx) => (
                           <button 
                             key={idx}
                             onMouseDown={(e) => { 
-                              e.preventDefault(); // Prevent input onBlur if we ever add one
-                              setMapCenter({ lat: loc.lat, lng: loc.lng });
-                              setLocationQuery(loc.name); 
-                              setShowLocationHints(false); 
+                              e.preventDefault();
+                              handleSelectLocation(loc);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-600 flex items-center gap-2 border-b border-gray-50 last:border-0"
+                            className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-600 flex flex-col justify-center border-b border-gray-50 last:border-0 font-poppins"
                           >
-                            <Navigation size={14} className="text-blue-500" />
-                            {loc.name}
+                            <div className="flex items-center gap-2">
+                              <Navigation size={14} className={loc.isLocal ? "text-blue-500" : "text-purple-500"} />
+                              <span className="font-bold text-gray-900">{loc.name}</span>
+                            </div>
+                            <span className="text-xs text-gray-400 pl-6">{loc.description}</span>
                           </button>
                         ))}
-                        {filteredLocations.length === 0 && (
+                        {combinedSuggestions.length === 0 && (
                           <div className="px-4 py-3 text-sm text-gray-500 italic">No locations found.</div>
                         )}
                       </div>
@@ -309,7 +432,7 @@ export default function MapSearchPage() {
              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Current Area</p>
              <p className="text-sm font-bold text-blue-600 flex items-center gap-1">
                <Navigation size={12} className="fill-current" />
-               {findLocation(locationQuery)?.name || "Guwahati Metro"}
+               {locationQuery || "Guwahati Metro"}
              </p>
           </div>
         </div>
