@@ -801,8 +801,13 @@ function SearchPageContent() {
                       {/* Name & Skill */}
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <h4 className="font-extrabold text-sm text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tight">
+                          <h4 className="font-extrabold text-sm text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tight flex items-center gap-1">
                             {worker.user.name}
+                            {worker.isFemale ? (
+                              <span className="text-rose-500 font-black text-sm" title="Female">♀</span>
+                            ) : (
+                              <span className="text-blue-500 font-black text-sm" title="Male">♂</span>
+                            )}
                           </h4>
                           {worker.isGroupLeader && (
                             <span className="px-1.5 py-0.5 bg-purple-50 text-purple-600 border border-purple-100 rounded text-[9px] font-bold">

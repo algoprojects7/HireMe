@@ -200,6 +200,7 @@ export class WorkersService {
           select: {
             id: true,
             name: true,
+            gender: true,
           },
         },
         skills: {
