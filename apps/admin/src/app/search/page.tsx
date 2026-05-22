@@ -276,9 +276,14 @@ function SearchPageContent() {
             setSelectedSkill('');
             setSkillSearch(res.data.extracted.skill);
           }
+        } else {
+          setSelectedSkill('');
+          setSkillSearch('All Workers');
         }
         if (res.data.extracted?.location) {
           setLocationQuery(res.data.extracted.location);
+        } else {
+          setLocationQuery('');
         }
       }
     } catch (err) {
@@ -416,13 +421,15 @@ function SearchPageContent() {
       };
     });
 
-    // Skill Filter
-    if (selectedSkill === 'others') {
-      result = result.filter(w => w.id.length % 2 === 0);
-    } else if (selectedSkill) {
-      result = result.filter(w => w.skills.some((s: any) => s.skillId === selectedSkill));
-    } else if (skillSearch && skillSearch.toLowerCase() !== 'all workers' && skillSearch.toLowerCase() !== 'all professions') {
-      result = result.filter(w => w.skills.some((s: any) => s.skill.name.toLowerCase().includes(skillSearch.toLowerCase())));
+    // Skill Filter (only locally filter in standard search mode)
+    if (searchMode === 'standard') {
+      if (selectedSkill === 'others') {
+        result = result.filter(w => w.id.length % 2 === 0);
+      } else if (selectedSkill) {
+        result = result.filter(w => w.skills.some((s: any) => s.skillId === selectedSkill));
+      } else if (skillSearch && skillSearch.toLowerCase() !== 'all workers' && skillSearch.toLowerCase() !== 'all professions') {
+        result = result.filter(w => w.skills.some((s: any) => s.skill.name.toLowerCase().includes(skillSearch.toLowerCase())));
+      }
     }
 
     // Chip Filters

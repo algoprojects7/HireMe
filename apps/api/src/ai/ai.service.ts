@@ -56,6 +56,65 @@ export class AIService {
   }
 
   /**
+   * Robust rule-based fallback parser used when AI models fail or return invalid outputs.
+   */
+  private async fallbackParse(query: string) {
+    const lowerQuery = query.toLowerCase();
+    
+    // 1. Extract location by checking predefined Guwahati areas
+    let matchedArea = null;
+    let locationName = null;
+    for (const area of GUWAHATI_AREAS) {
+      if (lowerQuery.includes(area.name.toLowerCase())) {
+        matchedArea = { name: area.name, lat: area.lat, lng: area.lng };
+        locationName = area.name;
+        break;
+      }
+    }
+    
+    // 2. Extract skill by checking database skills
+    let skillName: string | null = null;
+    try {
+      const skills = await this.db.client.skill.findMany({ select: { name: true } });
+      for (const s of skills) {
+        if (lowerQuery.includes(s.name.toLowerCase())) {
+          skillName = s.name;
+          break;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch skills for fallback parse:', e.message);
+    }
+    
+    // 3. Fallback common skills mapping if still null
+    if (!skillName) {
+      const common = [
+        { key: 'plumb', name: 'Plumber' },
+        { key: 'electric', name: 'Electrician' },
+        { key: 'carpent', name: 'Carpenter' },
+        { key: 'mason', name: 'Mason' },
+        { key: 'clean', name: 'Cleaning' },
+        { key: 'paint', name: 'Painter' },
+        { key: 'drive', name: 'Driver' },
+        { key: 'mechanic', name: 'Mechanic' },
+        { key: 'garden', name: 'Gardener' }
+      ];
+      for (const c of common) {
+        if (lowerQuery.includes(c.key)) {
+          skillName = c.name;
+          break;
+        }
+      }
+    }
+    
+    return {
+      skill: skillName,
+      location: locationName,
+      matchedArea
+    };
+  }
+
+  /**
    * Intelligent search with Gemini primary, Groq fallback, and Redis caching.
    */
   async intelligentSearch(query: string) {
@@ -92,15 +151,16 @@ export class AIService {
       return result;
     }
 
-    console.log('All AI models failed, using basic search.');
-    const workers = await this.recommendWorkers({ skillName: query });
+    console.log('All AI models failed, using rule-based fallback search.');
+    const fallback = await this.fallbackParse(query);
+    const workers = await this.recommendWorkers({
+      skillName: fallback.skill || undefined,
+      lat: fallback.matchedArea?.lat,
+      lng: fallback.matchedArea?.lng
+    });
     return {
       success: true,
-      extracted: {
-        skill: query,
-        location: null,
-        matchedArea: null,
-      },
+      extracted: fallback,
       workers,
     };
   }
@@ -162,12 +222,13 @@ export class AIService {
 Analyze the user's search query: "${query}"
 
 Extract:
-1. "skill": The specific service or profession requested (e.g. "Plumber", "Electrician", "Carpenter", "Mason", "Cleaning").
-2. "location": The neighborhood or area name (e.g. "Hatigaon", "Jalukbari", "Beltola", "Zoo Road", etc.).
+1. "skill": The specific service or profession requested (e.g. "Plumber", "Electrician", "Carpenter", "Mason", "Cleaning"). If no specific skill/profession is requested, return null.
+2. "location": The neighborhood or area name (e.g. "Hatigaon", "Jalukbari", "Beltola", "Zoo Road", etc.). If no location is mentioned, return null.
 
-Return ONLY a valid JSON object. Do not include markdown code block formatting.
-Example Output:
-{"skill": "Plumber", "location": "Hatigaon"}`;
+Return ONLY a JSON object. No markdown, no code blocks, no explanation.
+Example 1: "need an electrician near Beltola" -> {"skill": "Electrician", "location": "Beltola"}
+Example 2: "need a verified worker near Jalukbari" -> {"skill": null, "location": "Jalukbari"}
+Example 3: "plumber" -> {"skill": "Plumber", "location": null}`;
   }
 
   private async processAIResponse(text: string, originalQuery: string) {
@@ -193,7 +254,7 @@ Example Output:
       }
       
       const workers = await this.recommendWorkers({
-        skillName,
+        skillName: skillName || undefined,
         lat,
         lng,
         limit: 10
@@ -209,15 +270,16 @@ Example Output:
         workers
       };
     } catch (err) {
-      console.error('Error processing AI response:', err);
-      const workers = await this.recommendWorkers({ skillName: originalQuery });
+      console.error('Error processing AI response, using rule-based fallback:', err);
+      const fallback = await this.fallbackParse(originalQuery);
+      const workers = await this.recommendWorkers({
+        skillName: fallback.skill || undefined,
+        lat: fallback.matchedArea?.lat,
+        lng: fallback.matchedArea?.lng
+      });
       return {
         success: true,
-        extracted: {
-          skill: originalQuery,
-          location: null,
-          matchedArea: null
-        },
+        extracted: fallback,
         workers
       };
     }
