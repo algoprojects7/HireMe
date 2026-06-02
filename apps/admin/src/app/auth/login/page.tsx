@@ -77,6 +77,14 @@ function LoginForm() {
         </div>
       )}
 
+      {/* Session expired banner */}
+      {searchParams.get('expired') && (
+        <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-sm flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+          Your session has expired. Please sign in again.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Mobile Number</label>
