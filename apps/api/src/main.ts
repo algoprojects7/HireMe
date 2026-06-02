@@ -5,14 +5,19 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const allowedOrigins = new Set([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://hiremetoo.vercel.app',
+    'https://hireme2.cloud',
+    'https://www.hireme2.cloud',
+  ]);
+  if (process.env.ALLOWED_ORIGINS) {
+    process.env.ALLOWED_ORIGINS.split(',').forEach(o => allowedOrigins.add(o.trim()));
+  }
+
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'https://hiremetoo.vercel.app',
-      'https://hireme2.cloud',
-      'https://www.hireme2.cloud',
-    ],
+    origin: Array.from(allowedOrigins),
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({
