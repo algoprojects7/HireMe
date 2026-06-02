@@ -84,6 +84,13 @@ export class AuthService {
               groupSize: data.isGroupLeader ? (Number(data.groupSize) || 1) : 1,
             }
           }
+        }),
+        ...(role === 'PROVIDER' && {
+          customer: {
+            create: {
+              tenantId: targetTenantId,
+            }
+          }
         })
       },
     });

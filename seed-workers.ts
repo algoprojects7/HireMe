@@ -22,7 +22,6 @@ async function main() {
     create: {
       name: 'Plumber',
       description: 'Expert plumber',
-      baseRate: 500,
     },
   });
 
@@ -42,7 +41,6 @@ async function main() {
           isGroupLeader: false,
           groupSize: 1,
           isVerified: true,
-          rating: 4.8,
           skills: {
             create: {
               skillId: skill.id,
@@ -70,7 +68,6 @@ async function main() {
           isGroupLeader: true,
           groupSize: 4,
           isVerified: true,
-          rating: 4.9,
           skills: {
             create: {
               skillId: skill.id,

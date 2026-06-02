@@ -12,7 +12,7 @@ export class BookingsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async create(customerId: string, tenantId: string, createBookingDto: CreateBookingDto) {
+  async create(userId: string, tenantId: string, createBookingDto: CreateBookingDto) {
     const worker = await this.db.client.worker.findUnique({
       where: { id: createBookingDto.workerId },
       include: { leader: true },
@@ -20,6 +20,15 @@ export class BookingsService {
 
     if (!worker || !worker.isAvailable) {
       throw new BadRequestException('Worker is not available');
+    }
+
+    // Find the customer record for this userId
+    const customer = await this.db.client.customer.findUnique({
+      where: { userId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
     }
 
     // AI Validation: Check if this worker is actually a good match
@@ -38,7 +47,7 @@ export class BookingsService {
     const booking = await this.db.client.booking.create({
       data: {
         tenantId,
-        customerId,
+        customerId: customer.id,
         workerId: createBookingDto.workerId,
         amount: totalProviderAmount, // Total charged to provider
         platformFee: providerSurcharge + workerServiceFee, // Total platform revenue (10%)
