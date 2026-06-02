@@ -10,6 +10,8 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://127.0.0.1:3000',
       'https://hiremetoo.vercel.app',
+      'https://hireme2.cloud',
+      'https://www.hireme2.cloud',
     ],
     credentials: true,
   });
